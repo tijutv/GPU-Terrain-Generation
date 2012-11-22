@@ -13,5 +13,7 @@ Terrain Generation on the GPU with increasing level of detail using tessellation
 
 References
 ======================
-GPU Gems 3 - Generating Complex Procedural Terrains Using the GPU (http://http.developer.nvidia.com/GPUGems3/gpugems3_ch01.html)
-http://outerra.blogspot.com/search/label/fractal%20terrain - My Lecturer for the course, Patrick Cozzi, sent me this link for reference
+<ul>
+<li>GPU Gems 3 - Generating Complex Procedural Terrains Using the GPU (http://http.developer.nvidia.com/GPUGems3/gpugems3_ch01.html)</li>
+<li>http://outerra.blogspot.com/search/label/fractal%20terrain - My Lecturer for the course, Patrick Cozzi, sent me this link for reference</li>
+</ul>
