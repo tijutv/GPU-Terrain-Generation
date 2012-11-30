@@ -1,0 +1,98 @@
+﻿Build started 11/30/2012 5:20:40 PM.
+     1>Project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" on node 2 (clean target(s)).
+     1>Building with tools version "4.0".
+     1>Target "_CheckForInvalidConfigurationAndPlatform" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (entry point):
+       Task "Error" skipped, due to false condition; ( '$(_InvalidConfigurationError)' == 'true' ) was evaluated as ( '' == 'true' ).
+       Task "Warning" skipped, due to false condition; ( '$(_InvalidConfigurationWarning)' == 'true' ) was evaluated as ( '' == 'true' ).
+       Using "Message" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "Message"
+         Configuration=Debug
+       Done executing task "Message".
+       Task "Message"
+         Platform=Win32
+       Done executing task "Message".
+       Task "Error" skipped, due to false condition; ('$(OutDir)' != '' and !HasTrailingSlash('$(OutDir)')) was evaluated as ('C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\' != '' and !HasTrailingSlash('C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\')).
+       Task "Error" skipped, due to false condition; ('$(BaseIntermediateOutputPath)' != '' and !HasTrailingSlash('$(BaseIntermediateOutputPath)')) was evaluated as ('obj\' != '' and !HasTrailingSlash('obj\')).
+       Task "Error" skipped, due to false condition; ('$(IntermediateOutputPath)' != '' and !HasTrailingSlash('$(IntermediateOutputPath)')) was evaluated as ('Debug\' != '' and !HasTrailingSlash('Debug\')).
+     1>Done building target "_CheckForInvalidConfigurationAndPlatform" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "_PrepareForClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.BuildSteps.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+       Using "Delete" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "Delete"
+         Deleting file "Debug\GPUTerrainGenerator.lastbuildstate".
+       Done executing task "Delete".
+     1>Done building target "_PrepareForClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "BeforeClean" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+     1>Done building target "BeforeClean" in project "GPUTerrainGenerator.vcxproj".
+       Target "UnmanagedUnregistration" skipped, due to false condition; ((('$(_AssemblyTimestampBeforeCompile)' != '$(_AssemblyTimestampAfterCompile)' or '$(RegisterForComInterop)' != 'true' or '$(OutputType)' != 'library') or
+                           ('$(_AssemblyTimestampBeforeCompile)' == '')) and
+                          Exists('@(_UnmanagedRegistrationCache)')) was evaluated as ((('' != '' or '' != 'true' or 'exe' != 'library') or
+                           ('' == '')) and
+                          Exists('obj\GPUTerrainGenerator.vcxproj.UnmanagedRegistration.cache')).
+     1>Target "CoreClean" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+       Task "Delete"
+       Done executing task "Delete".
+       Using "ReadLinesFromFile" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "ReadLinesFromFile"
+       Done executing task "ReadLinesFromFile".
+       Using "FindUnderPath" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "FindUnderPath"
+         Comparison path is "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\".
+       Done executing task "FindUnderPath".
+       Task "FindUnderPath"
+         Comparison path is "Debug\".
+       Done executing task "FindUnderPath".
+       Task "Delete"
+       Done executing task "Delete".
+       Using "RemoveDuplicates" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "RemoveDuplicates"
+       Done executing task "RemoveDuplicates".
+       Using "MakeDir" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "MakeDir"
+       Done executing task "MakeDir".
+       Using "WriteLinesToFile" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "WriteLinesToFile"
+       Done executing task "WriteLinesToFile".
+     1>Done building target "CoreClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "AssignProjectConfiguration" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CleanReferencedProjects" depends on it):
+       Using "AssignProjectConfiguration" task from assembly "Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "AssignProjectConfiguration"
+       Done executing task "AssignProjectConfiguration".
+     1>Done building target "AssignProjectConfiguration" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "_SplitProjectReferencesByFileExistence" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CleanReferencedProjects" depends on it):
+       Task "ResolveNonMSBuildProjectOutput" skipped, due to false condition; ('$(BuildingInsideVisualStudio)'=='true' and '@(ProjectReferenceWithConfiguration)'!='') was evaluated as ('true'=='true' and ''!='').
+     1>Done building target "_SplitProjectReferencesByFileExistence" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "CleanReferencedProjects" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+       Task "MSBuild" skipped, due to false condition; ('$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' == 'true' and '@(_MSBuildProjectReferenceExistent)' != '') was evaluated as ('true' != 'true' and 'true' == 'true' and '' != '').
+     1>Done building target "CleanReferencedProjects" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "CleanPublishFolder" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+       Task "RemoveDir" skipped, due to false condition; ('$(PublishDir)'=='$(OutputPath)app.publish\' and Exists('$(PublishDir)')) was evaluated as ('C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\app.publish\'=='C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\app.publish\' and Exists('C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\Debug\app.publish\')).
+     1>Done building target "CleanPublishFolder" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "AfterClean" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+     1>Done building target "AfterClean" in project "GPUTerrainGenerator.vcxproj".
+       Target "EntityClean" skipped, due to false condition; ('@(EntityDeploy)' != '') was evaluated as ('' != '').
+     1>Target "BeforeCppClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppClean.targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CppClean" depends on it):
+     1>Done building target "BeforeCppClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "CoreCppClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppClean.targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CppClean" depends on it):
+       Task "MakeDir"
+       Done executing task "MakeDir".
+       Using "CppClean" task from assembly "Microsoft.Build.CppTasks.Common, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+       Task "CppClean"
+       Done executing task "CppClean".
+       Task "WriteLinesToFile"
+       Done executing task "WriteLinesToFile".
+     1>Done building target "CoreCppClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "AfterCppClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppClean.targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CppClean" depends on it):
+     1>Done building target "AfterCppClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "PGInstrumentedClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppClean.targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "CppClean" depends on it):
+       Task "Delete"
+       Done executing task "Delete".
+     1>Done building target "PGInstrumentedClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "CppClean" in file "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppClean.targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (target "Clean" depends on it):
+     1>Done building target "CppClean" in project "GPUTerrainGenerator.vcxproj".
+     1>Target "Clean" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (entry point):
+     1>Done building target "Clean" in project "GPUTerrainGenerator.vcxproj".
+     1>Done Building Project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (clean target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.02
