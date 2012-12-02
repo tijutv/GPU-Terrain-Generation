@@ -91,7 +91,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="simpleFS.glsl" />
+    <None Include="simpleGS.glsl" />
     <None Include="simpleVS.glsl" />
+    <None Include="Terrain_TCS.glsl" />
+    <None Include="Terrain_TES.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

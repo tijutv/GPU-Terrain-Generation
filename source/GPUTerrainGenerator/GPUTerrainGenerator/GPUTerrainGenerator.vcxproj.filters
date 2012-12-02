@@ -46,5 +46,14 @@
     <None Include="simpleVS.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="simpleGS.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Terrain_TCS.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Terrain_TES.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

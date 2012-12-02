@@ -1,16 +1,10 @@
-#version 330
+#version 400
+
+uniform sampler2D u_Noise;
 
 in vec4 Position;
 
-uniform mat4 u_View;
-uniform mat4 u_Persp;
-uniform sampler2D u_Noise;
-
-in vec2 Texcoords;
-
-out vec3 screenPos; // z has the depth value
-out vec2 fs_Texcoord;
-out vec3 worldCoord;
+out vec3 vs_Position;
 
 // Noise Code adapted from http://www.sci.utah.edu/~leenak/IndStudy_reportfall/PNoiseCode.txt
 #define ONE 0.00390625
@@ -82,17 +76,76 @@ float turbulence(int octaves, vec3 P, float lacunarity, float gain)
 
 
 
+// Rigid MultiFractal Terrain Model - from the book "Texturing & Modeling: A Procedural Approach"
+float RidgedMultiFractal(vec3 point, float H, float lacunarity, float octaves, float offset, float gain)
+{
+	float result, frequency, signal, weight;
+	int i;
+	bool first = true;
+	float exponentArray[5];
+
+	frequency = 1.0;
+	if (first)
+	{
+		for (int i = 0; i<5; ++i)
+		{
+			exponentArray[i] = pow(frequency, -H);
+			frequency *= lacunarity;
+		}
+
+		first = false;
+	}
+
+	/* get first octave */
+	signal = noise( point );
+	/* get absolute value of signal (this creates the ridges) */
+	if ( signal < 0.0 ) signal = -signal;
+	/* invert and translate (note that "offset" should be ~= 1.0) */
+	signal = offset - signal;
+	/* square the signal, to increase "sharpness" of ridges */
+	signal *= signal;
+	/* assign initial values */
+	result = signal;
+	weight = 1.0;
+
+	for( i=1; i<octaves; i++ ) 
+	{
+		/* increase the frequency */
+		point.x *= lacunarity;
+		point.y *= lacunarity;
+		point.z *= lacunarity;
+
+		/* weight successive contributions by previous signal */
+		weight = signal * gain;
+		if ( weight > 1.0 ) weight = 1.0;
+		if ( weight < 0.0 ) weight = 0.0;
+		signal = noise( point );
+		if ( signal < 0.0 ) signal = -signal;
+		signal = offset - signal;
+		signal *= signal;
+		/* weight the contribution */
+		signal *= weight;
+		result += signal * exponentArray[i];
+	}
+
+	return result;
+}
+
+
 void main(void)
 {
-	fs_Texcoord = Texcoords;
-	
-	float height = turbulence(4, Position.xyz, 0.14, 0.35);
+	float height = turbulence(4, Position.xyz, 0.07, 0.35);
 	height -= 0.02;
 	height = max(height, 0.0);
 	height *= 30;
-	vec4 pos = vec4(Position.x, Position.y+height, Position.z, 1.0);
-	worldCoord = pos.xyz;
-	pos = u_Persp*u_View*pos;
-	gl_Position = pos/pos.w;
-	screenPos = vec3(gl_Position.xy, worldCoord.z);
+
+	/*height = RidgedMultiFractal(Position.xyz, 1.0, 2.2, 5, 1.0, 2.0);
+	height = step(0.5, height) * height;
+	height *= 0.5;
+	height = clamp(height, 0.0, 1.0);
+	height *= 10;
+	height = max(height, 0.0);*/
+
+	vs_Position = vec3(Position.x, Position.y+height, Position.z);
+	//vs_Position = Position.xyz;
 }

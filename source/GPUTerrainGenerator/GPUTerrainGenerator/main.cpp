@@ -12,6 +12,8 @@ const char *attributeLocations[] = { "Position", "Texcoords" };
 
 Camera cam;
 GLuint passthroughProgram;
+GLuint depthTexture = 1;
+GLuint FBO = 0;
 int triVerticesToDraw;
 
 // Mouse movemet variables
@@ -21,16 +23,27 @@ int lastX = 0, lastY = 0;
 
 bool displayMesh;
 
-GLuint initShader(const char* vShaderFile, const char* fShaderFile)
+struct Tess
 {
-	GLuint program = Utility::createProgram(vShaderFile, fShaderFile, attributeLocations, 2);
+	float innerTessellation;
+	glm::vec3 outerTessellation;
+};
+
+Tess tessellation;
+
+GLuint initShader(const char* vShaderFile, const char* fShaderFile, const char* gShaderFile, bool hasGeometryShader,
+	              const char* tcsShaderFile, const char* tesShaderFile, bool hasTessellationShader)
+{
+	GLuint program = Utility::createProgram(vShaderFile, fShaderFile, gShaderFile, hasGeometryShader, 
+		                                    tcsShaderFile, tesShaderFile, hasTessellationShader,
+											attributeLocations, 2);
 	glUseProgram(program);
 	return program;
-}
+}	
 
 void init()
 {
-	Terrain terrain(-40.0f, 40.0f, 18, 100);
+	Terrain terrain(-80.0f, 80.0f, 18, 200);
 	terrain.GenerateTerrainData();
 
 	float baryCentricCoords[] =
@@ -75,6 +88,33 @@ void init()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, terrain.faces.size()*sizeof(Triangle), &terrain.faces[0], GL_STATIC_DRAW);
 	triVerticesToDraw = 3*terrain.faces.size();
+
+	glGenTextures(1, &depthTexture);
+	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+
+	// create a framebuffer object
+	glGenFramebuffers(1, &FBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+
+	// check FBO status
+	GLenum FBOstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if(FBOstatus != GL_FRAMEBUFFER_COMPLETE) {
+		printf("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO\n");
+        //checkFramebufferStatus(FBOstatus);
+	}
+
+	// switch back to window-system-provided framebuffer
+	glClear(GL_DEPTH_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 int perm[256]= {151,160,137,91,90,15,
@@ -96,7 +136,7 @@ int grad3[16][3] = {{0,1,1},{0,1,-1},{0,-1,1},{0,-1,-1},
                    {1,1,0},{1,-1,0},{-1,1,0},{-1,-1,0}, // 12 cube edges
                    {1,0,-1},{-1,0,-1},{0,-1,1},{0,1,1}}; // 4 more to make 16
 
-void initPermTexture(GLuint *texID)
+void initNoiseTexture(GLuint *texID)
 {
 	char *pixels;
 	int i,j;
@@ -163,14 +203,22 @@ void GetUniforms()
 
 	//glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Model"),1,GL_FALSE,&cam.GetModelView()[0][0]);
 	GLuint tex = 0;
-	initPermTexture(&tex);
+	initNoiseTexture(&tex);
 	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_View"), 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Persp"), 1, GL_FALSE, &perspective[0][0]);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_InnerTessLevel"), tessellation.innerTessellation);
+	glUniform3f(glGetUniformLocation(passthroughProgram,"u_OuterTessLevel"), 
+		        tessellation.outerTessellation.x, tessellation.outerTessellation.y, tessellation.outerTessellation.z);
+
+	glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glUniform1i(glGetUniformLocation(passthroughProgram, "u_Depthtex"),0);
 }
 
 void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	//glEnable(GL_CULL_FACE);
 
 	GetUniforms();
@@ -181,7 +229,7 @@ void display(void)
 	else
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	glDrawElements(GL_TRIANGLES, triVerticesToDraw,  GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_PATCHES, triVerticesToDraw,  GL_UNSIGNED_SHORT, 0);
 
 	updateTitleFPS();
 
@@ -220,6 +268,24 @@ void keyboard(unsigned char key, int x, int y)
 	case 'm':
 	case 'M':
 		displayMesh = !displayMesh;
+		break;
+	case 'i':
+		// Decrease Inner Tesselation
+		if (tessellation.innerTessellation > 1.0)
+			tessellation.innerTessellation -= 1.0;
+		break;
+	case 'I':
+		// Increase Inner Tesselation
+		tessellation.innerTessellation += 1.0;
+		break;
+	case 'o':
+		// Decrease Outer Tesselation
+		if (tessellation.outerTessellation.x > 1.0)
+			tessellation.outerTessellation -= glm::vec3(1.0);
+		break;
+	case 'O':
+		// Decrease Outer Tesselation
+		tessellation.outerTessellation += glm::vec3(1.0);
 		break;
 	}
 }
@@ -290,8 +356,23 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
+	char* versionStr = (char*)glGetString(GL_VERSION);
+	if (atof(versionStr) < 4.0f)
+	{
+		cout << "Status: Using GLEW " << glewGetString(GLEW_VERSION) << endl;
+		cout << "OpenGL v " << versionStr << " supported on this machine" << endl;
+		cout << "Your OpenGL version doesn't support this application. This application requires OpenGL v4.0 or greater" << endl;
+		exit(0);
+	}
+
+	tessellation.innerTessellation = 1.0f;
+	tessellation.outerTessellation = glm::vec3(1);
+
 	// Create, compile and attach shaders
-	passthroughProgram = initShader("simpleVS.glsl", "simpleFS.glsl");
+	bool hasGeometryShader = true;
+	bool hasTessellationShader = true;
+	passthroughProgram = initShader("simpleVS.glsl", "simpleFS.glsl", "simpleGS.glsl", hasGeometryShader, 
+		                            "Terrain_TCS.glsl", "Terrain_TES.glsl", hasTessellationShader);
 	init();
 
 	displayMesh = true;
