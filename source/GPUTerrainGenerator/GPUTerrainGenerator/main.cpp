@@ -204,6 +204,22 @@ void GetUniforms()
 	//glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Model"),1,GL_FALSE,&cam.GetModelView()[0][0]);
 	GLuint tex = 0;
 	initNoiseTexture(&tex);
+
+	glm::vec4 nearModelView = view*glm::vec4(0,0,cam.near,1);
+	glm::vec4 farModelView = view*glm::vec4(0,0,cam.far,1);
+
+	// The tessellation distance - Terrain that is closer to camera than this value is tessellated
+	float tessDist = -((farModelView.z - nearModelView.z)/3.0 + nearModelView.z);
+	//std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z << std::endl;
+
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Near"), cam.near);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Far"), cam.far);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Left"), cam.left);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Right"), cam.right);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Top"), cam.top);
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Bottom"), cam.bottom);
+	
+	glUniform1f(glGetUniformLocation(passthroughProgram,"u_TessDistance"), tessDist);
 	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_View"), 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Persp"), 1, GL_FALSE, &perspective[0][0]);
 	glUniform1f(glGetUniformLocation(passthroughProgram,"u_InnerTessLevel"), tessellation.innerTessellation);
@@ -217,17 +233,18 @@ void GetUniforms()
 
 void display(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	GetUniforms();
 
 	// The line below just displays the mesh
 	if (displayMesh)
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glPolygonMode(GL_FRONT, GL_LINE);
 	else
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glPolygonMode(GL_FRONT, GL_FILL);
 
 	glDrawElements(GL_PATCHES, triVerticesToDraw,  GL_UNSIGNED_SHORT, 0);
 
@@ -237,33 +254,46 @@ void display(void)
 	glutSwapBuffers();
 }
 
+void reshape(GLsizei w, GLsizei h)
+{
+	width = w;
+	height = h;
+	glViewport(0, 0, w, h);
+}
+
 void keyboard(unsigned char key, int x, int y)
 {
 	switch(key)
 	{
 	case 'z':
 	case 'Z':
-		cam.pos.z -= 1;
+		cam.pos.z -= 0.2;
+		cam.lookPos.z -= 0.2;
 		break;
 	case 'x':
 	case 'X':
-		cam.pos.z += 1;
+		cam.pos.z += 0.2;
+		cam.lookPos.z += 0.2;
 		break;
 	case 'w':
 	case 'W':
 		cam.pos.y += 1;
+		cam.lookPos.y += 1;
 		break;
 	case 's':
 	case 'S':
 		cam.pos.y -= 1;
+		cam.lookPos.y -= 1.0;
 		break;
 	case 'a':
 	case 'A':
 		cam.pos.x -= 1;
+		cam.lookPos.x -= 1;
 		break;
 	case 'd':
 	case 'D':
 		cam.pos.x += 1;
+		cam.lookPos.x += 1;
 		break;
 	case 'm':
 	case 'M':
@@ -328,7 +358,8 @@ void mouse_motion(int x, int y)
 		{
 			if (deltaX > 0) cam.rot.y -= 5;
 			else if (deltaX < 0) cam.rot.y += 5;
-			else if (deltaY > 0) cam.rot.x += 5;
+			else 
+				if (deltaY > 0) cam.rot.x += 5;
 			else if (deltaY < 0) cam.rot.x -= 5;
 		}
 		break;
@@ -379,6 +410,7 @@ int main(int argc, char** argv)
 	std::cout << "GPU Terrain Generator" << std::endl;
 
 	glutDisplayFunc(display);
+	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyboard);
 	glutMouseFunc(mouse);
     glutMotionFunc(mouse_motion);

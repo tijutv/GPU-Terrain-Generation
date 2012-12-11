@@ -22,8 +22,8 @@ public:
 
 void Terrain::GenerateTerrainData()
 {
-	float stepX = 2.0;
-	float stepZ = 2.0;
+	float stepX = 5.0;
+	float stepZ = 5.0;
 
 	int numX = int((maxX - minX)/stepX) + 1;
 

@@ -6,8 +6,8 @@
 #include "gtc/matrix_transform.hpp"
 
 #define PI 3.1415926535897
-const int width  = 720;
-const int height = 720;
+int width  = 720;
+int height = 720;
 
 struct Camera
 {
@@ -32,16 +32,16 @@ struct Camera
 	{
 		pos = glm::vec3(0,5,-1);
 		translate = glm::vec3(0,0,0);
-		rot = glm::vec3(0,0,0);
+		rot = glm::vec3(0,3,0);
 
 		up = glm::vec3(0,1,0);
 		lookPos = glm::vec3(0,0,-200);
 
-		fovy = 90.0;
+		fovy = 80.0;
 		aspect = width/height;
 		near = 3.0f;
 		far = 200.0f;
-
+		 
 		left = -10;
 		right = 10;
 		bottom = -10;
@@ -62,7 +62,19 @@ struct Camera
 
 	glm::mat4 GetPerspective()
 	{
-		return glm::perspective(fovy, aspect, near, far);
 		//return glm::frustum(left, right, bottom, top, near, far);
+		glm::mat4 persp = glm::perspective(fovy, aspect, near, far);
+		/*std::cout << "Mat: " << persp[0][0] << ", " << persp[0][1] << ", " << persp[0][2] << ", " << persp[0][3] << std::endl;
+		std::cout << "Mat: " << persp[1][0] << ", " << persp[1][1] << ", " << persp[1][2] << ", " << persp[1][3] << std::endl;
+		std::cout << "Mat: " << persp[2][0] << ", " << persp[2][1] << ", " << persp[2][2] << ", " << persp[2][3] << std::endl;
+		std::cout << "Mat: " << persp[3][0] << ", " << persp[3][1] << ", " << persp[3][2] << ", " << persp[3][3] << std::endl << std::endl;*/
+		
+		right = near * (persp[0][2] - 1)/persp[0][0];
+		left  = near * (persp[0][2] + 1)/persp[0][0];
+		top    = near * (persp[1][2] - 1)/persp[1][1];
+		bottom = near * (persp[1][2] + 1)/persp[1][1];
+
+		//std::cout << "Near: " << near << " Far: " << far << " Left: " << left << "  Right: " << right << "  top: " << top << "  bottom: " << bottom << std::endl;
+		return persp;
 	}
 };
