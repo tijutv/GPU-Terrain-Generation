@@ -9,7 +9,7 @@ uniform sampler2D u_Noise;
 in vec3 tcs_Position[];
 
 out vec3 tes_worldCoord;
-
+out vec4 tes_Position;
 
 // Noise Code adapted from http://www.sci.utah.edu/~leenak/IndStudy_reportfall/PNoiseCode.txt
 #define ONE 0.00390625
@@ -154,7 +154,7 @@ void main(void)
 		height = 0.0;
 	//height *= 30;
 	tes_worldCoord = vec3(tes_worldCoord.x, tes_worldCoord.y+height, tes_worldCoord.z);
-	
-	vec4 pos = u_Persp * u_View * vec4(tes_worldCoord, 1.0);
+	tes_Position = u_View * vec4(tes_worldCoord, 1.0);
+	vec4 pos = u_Persp * tes_Position;
 	gl_Position = pos;///pos.w;
 }

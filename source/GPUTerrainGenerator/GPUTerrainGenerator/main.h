@@ -9,6 +9,15 @@
 int width  = 720;
 int height = 720;
 
+#define	DISPLAY_MESH 0
+#define	DISPLAY_SHADED 1
+#define	DISPLAY_DEPTH 2
+#define	DISPLAY_FOG 3
+#define	DISPLAY_LOWER_FOG 4
+#define	DISPLAY_DEPTH_FOG 5
+#define	DISPLAY_OCCLUSION 6
+#define	DISPLAY_NORMAL 7
+
 struct Camera
 {
 	glm::vec3 pos;
@@ -19,6 +28,7 @@ struct Camera
 	glm::vec3 lookPos;
 
 	float fovy;
+	float fovx;
 	float aspect;
 	float near;
 	float far;
@@ -32,13 +42,15 @@ struct Camera
 	{
 		pos = glm::vec3(0,5,-1);
 		translate = glm::vec3(0,0,0);
-		rot = glm::vec3(0,3,0);
+		rot = glm::vec3(0,0,0);
 
 		up = glm::vec3(0,1,0);
 		lookPos = glm::vec3(0,0,-200);
 
-		fovy = 80.0;
+		fovy = 60.0;
 		aspect = width/height;
+		fovx = atan(aspect * tan(fovy*PI/180.0/2.0)) * 2.0;
+		fovx *= 180.0/PI;
 		near = 3.0f;
 		far = 200.0f;
 		 
@@ -50,6 +62,7 @@ struct Camera
 
 	glm::mat4 GetViewTransform()
 	{
+
 		glm::mat4 model_view = glm::lookAt(pos+translate, lookPos, up);
 
 		// X-Y-Z rotation
@@ -69,10 +82,10 @@ struct Camera
 		std::cout << "Mat: " << persp[2][0] << ", " << persp[2][1] << ", " << persp[2][2] << ", " << persp[2][3] << std::endl;
 		std::cout << "Mat: " << persp[3][0] << ", " << persp[3][1] << ", " << persp[3][2] << ", " << persp[3][3] << std::endl << std::endl;*/
 		
-		right = near * (persp[0][2] - 1)/persp[0][0];
-		left  = near * (persp[0][2] + 1)/persp[0][0];
-		top    = near * (persp[1][2] - 1)/persp[1][1];
-		bottom = near * (persp[1][2] + 1)/persp[1][1];
+		left = near * (persp[0][2] - 1)/persp[0][0];
+		right  = near * (persp[0][2] + 1)/persp[0][0];
+		bottom    = near * (persp[1][2] - 1)/persp[1][1];
+		top = near * (persp[1][2] + 1)/persp[1][1];
 
 		//std::cout << "Near: " << near << " Far: " << far << " Left: " << left << "  Right: " << right << "  top: " << top << "  bottom: " << bottom << std::endl;
 		return persp;

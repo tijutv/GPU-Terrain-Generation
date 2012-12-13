@@ -16,6 +16,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{276d0d01-0e6a-41de-8232-6936e78a6424}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SOIL_Files">
+      <UniqueIdentifier>{e0529b8d-6faa-4f82-9f38-a80923fdfc1b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -23,6 +26,18 @@
     </ClCompile>
     <ClCompile Include="Utility.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOIL\image_DXT.c">
+      <Filter>SOIL_Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOIL\image_helper.c">
+      <Filter>SOIL_Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOIL\SOIL.c">
+      <Filter>SOIL_Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOIL\stb_image_aug.c">
+      <Filter>SOIL_Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -37,6 +52,24 @@
     </ClInclude>
     <ClInclude Include="Terrain.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\image_DXT.h">
+      <Filter>SOIL_Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\image_helper.h">
+      <Filter>SOIL_Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\SOIL.h">
+      <Filter>SOIL_Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\stb_image_aug.h">
+      <Filter>SOIL_Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\stbi_DDS_aug.h">
+      <Filter>SOIL_Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOIL\stbi_DDS_aug_c.h">
+      <Filter>SOIL_Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +87,18 @@
     </None>
     <None Include="Terrain_TES.glsl">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="secondPassFS.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="secondPassVS.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="random.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="random_normal.png">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

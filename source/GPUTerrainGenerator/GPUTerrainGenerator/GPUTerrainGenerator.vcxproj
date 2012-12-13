@@ -68,28 +68,46 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\shared\glm;..\..\shared\glew\include;..\..\shared\freeglut\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\shared\glm;..\..\shared\glew\include;..\..\shared\freeglut\include;..\Shader_Loading;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\shared\glew\lib;..\..\shared\freeglut\lib;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\shared\glew\lib;..\..\shared\freeglut\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>freeglut.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\SOIL\image_DXT.c" />
+    <ClCompile Include="..\SOIL\image_helper.c" />
+    <ClCompile Include="..\SOIL\SOIL.c" />
+    <ClCompile Include="..\SOIL\stb_image_aug.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\SOIL\image_DXT.h" />
+    <ClInclude Include="..\SOIL\image_helper.h" />
+    <ClInclude Include="..\SOIL\SOIL.h" />
+    <ClInclude Include="..\SOIL\stbi_DDS_aug.h" />
+    <ClInclude Include="..\SOIL\stbi_DDS_aug_c.h" />
+    <ClInclude Include="..\SOIL\stb_image_aug.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Terrain.h" />
     <ClInclude Include="Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="random.png" />
+    <None Include="random_normal.png" />
+    <None Include="secondPassFS.glsl" />
+    <None Include="secondPassVS.glsl" />
     <None Include="simpleFS.glsl" />
     <None Include="simpleGS.glsl" />
     <None Include="simpleVS.glsl" />

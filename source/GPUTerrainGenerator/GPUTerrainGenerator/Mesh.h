@@ -8,11 +8,11 @@ using namespace std;
 
 struct Triangle
 {
-	unsigned short x;
-	unsigned short y;
-	unsigned short z;
+	unsigned int x;
+	unsigned int y;
+	unsigned int z;
 
-	Triangle(unsigned short i_x, unsigned short i_y, unsigned short i_z)
+	Triangle(unsigned int i_x, unsigned int i_y, unsigned int i_z)
 	{
 		x = i_x;
 		y = i_y;

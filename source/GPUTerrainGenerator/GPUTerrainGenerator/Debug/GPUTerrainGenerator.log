@@ -1,4 +1,4 @@
-﻿Build started 12/11/2012 1:49:23 PM.
+﻿Build started 12/13/2012 6:20:52 AM.
      1>Project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" on node 2 (clean target(s)).
      1>Building with tools version "4.0".
      1>Target "_CheckForInvalidConfigurationAndPlatform" in file "C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets" from project "C:\Users\Tease\Documents\GitHub\GPU-Terrain-Generation\source\GPUTerrainGenerator\GPUTerrainGenerator\GPUTerrainGenerator.vcxproj" (entry point):
@@ -95,4 +95,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:00.01
+Time Elapsed 00:00:00.06

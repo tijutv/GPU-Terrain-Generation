@@ -43,7 +43,7 @@ void Terrain::GenerateTerrainData()
 	}
 
 	// Create triangular faces
-	for (unsigned short i=numX+1; i<(unsigned short)vertices.size(); ++i)
+	for (unsigned int i=numX+1; i<(unsigned int)vertices.size(); ++i)
 	{
 		if (i%numX == 0)
 			continue;

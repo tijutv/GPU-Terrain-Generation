@@ -2,26 +2,76 @@
 #include "main.h"
 #include "Utility.h"
 #include "Terrain.h"
+#include <GL/glut.h>
+#include "..\SOIL\SOIL.h"
 #include <string>
+
+using namespace glm;
 
 const char* mainTitle = "Terrain Generator";
 
 GLuint positionLocation = 0;
-GLuint texcoordsLocation = 1;
-const char *attributeLocations[] = { "Position", "Texcoords" };
+const char *attributeLocations[] = { "Position" };
+
+GLuint posLocSecondPass = 0;
+GLuint texLocSecondPass = 0;
+const char *attribLocSecondPass[] = { "Position", "Texture" };
+
+namespace secondPassAttributes {
+	enum {
+		POSITION,
+		TEXCOORD
+	};
+}
 
 Camera cam;
-GLuint passthroughProgram;
-GLuint depthTexture = 1;
+GLuint shaderProgram;
+GLuint shaderSecondPassProgram;
+
+GLuint depthTexture = 0;
+GLuint normalTexture = 0;
+GLuint positionTexture = 0;
+GLuint colorTexture = 0;
+GLuint worldPosTexture = 0;
 GLuint FBO = 0;
+
+GLuint vao;
+GLuint vbo, ibo;
+
 int triVerticesToDraw;
+
+GLuint vaoSecondPass;
+GLuint iboSecondPass;
+
+typedef struct {
+	unsigned int vao;
+	unsigned int ibo;
+	unsigned int numIndices;
+	//Don't need these to get it working, but needed for deallocation
+	unsigned int vbo;
+} bufferObjects;
+
+typedef struct {
+	glm::vec3 pt;
+	glm::vec2 texcoord;
+} vertex2_t;
+
+namespace attribsSecondPass {
+	enum {
+		POSITION,
+		TEXCOORD
+	};
+}
+
+bufferObjects bufferSecondPass;
 
 // Mouse movemet variables
 int theButtonState = 0;
 int theModifierState = 0;
 int lastX = 0, lastY = 0;
 
-bool displayMesh;
+int uniformDisplay;
+int uniformDisplayFog;
 
 struct Tess
 {
@@ -30,49 +80,73 @@ struct Tess
 };
 
 Tess tessellation;
+Tess tessellation2;
+
+void checkFramebufferStatus(GLenum framebufferStatus) {
+	switch (framebufferStatus) {
+        case GL_FRAMEBUFFER_COMPLETE_EXT: break;
+        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
+            printf("Attachment Point Unconnected");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
+            printf("Missing Attachment");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+            printf("Dimensions do not match");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+            printf("Formats");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:
+            printf("Draw Buffer");
+            break;
+        case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
+            printf("Read Buffer");
+            break;
+        case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
+            printf("Unsupported Framebuffer Configuration");
+            break;
+        default:
+            printf("Unkown Framebuffer Object Failure");
+            break;
+    }
+}
+
+
 
 GLuint initShader(const char* vShaderFile, const char* fShaderFile, const char* gShaderFile, bool hasGeometryShader,
 	              const char* tcsShaderFile, const char* tesShaderFile, bool hasTessellationShader)
 {
 	GLuint program = Utility::createProgram(vShaderFile, fShaderFile, gShaderFile, hasGeometryShader, 
 		                                    tcsShaderFile, tesShaderFile, hasTessellationShader,
-											attributeLocations, 2);
+											attributeLocations, 1);
 	glUseProgram(program);
 	return program;
-}	
+}
+
+GLuint initSecondPassShader(const char* vShaderFile, const char* fShaderFile, const char* gShaderFile, bool hasGeometryShader,
+	              const char* tcsShaderFile, const char* tesShaderFile, bool hasTessellationShader)
+{
+	GLuint program = Utility::createProgram(vShaderFile, fShaderFile, gShaderFile, hasGeometryShader, 
+		                                    tcsShaderFile, tesShaderFile, hasTessellationShader,
+											attribLocSecondPass, 2);
+	return program;
+}
 
 void init()
 {
-	Terrain terrain(-80.0f, 80.0f, 18, 200);
+	Terrain terrain(-800.0f, 800.0f, 1, 2500);
 	terrain.GenerateTerrainData();
 
-	float baryCentricCoords[] =
-	{ 
-        0.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f,
-        1.0f, 0.0f, 0.0f
-    };
-
-	GLfloat texcoords[] = 
-    { 
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 0.0f
-    };
-
 	//GLushort indices[] = { 0, 1, 3, 3, 1, 2 };
-	Triangle indices[] = {Triangle(0,1,3)};
+	//Triangle indices[] = {Triangle(0,1,3)};
 
 	// Find an unused name for the buffer and create it
-	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
 	// Create a buffer object to place data
-	GLuint vbo, tbo, ibo;
 	glGenBuffers(1, &vbo);
-	glGenBuffers(1, &tbo);
 	glGenBuffers(1, &ibo);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -80,41 +154,154 @@ void init()
 	glEnableVertexAttribArray(positionLocation);
 	glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, tbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(texcoords), texcoords, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(texcoordsLocation);
-	glVertexAttribPointer(texcoordsLocation, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, terrain.faces.size()*sizeof(Triangle), &terrain.faces[0], GL_STATIC_DRAW);
 	triVerticesToDraw = 3*terrain.faces.size();
 
+	//Unplug Vertex Array
+    glBindVertexArray(0);
+}
+
+void initFBO(int w, int h) {
+    GLenum FBOstatus;
+	
+	glActiveTexture(GL_TEXTURE0);
+	
 	glGenTextures(1, &depthTexture);
-	glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glGenTextures(1, &normalTexture);
+	glGenTextures(1, &positionTexture);
+	glGenTextures(1, &colorTexture);
+	glGenTextures(1, &worldPosTexture);
+	
+	glBindTexture(GL_TEXTURE_2D, depthTexture);	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 
-	// create a framebuffer object
+	glBindTexture(GL_TEXTURE_2D, normalTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
+
+	glBindTexture(GL_TEXTURE_2D, positionTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
+
+	glBindTexture(GL_TEXTURE_2D, colorTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
+
+	glBindTexture(GL_TEXTURE_2D, worldPosTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
+		
+	// creatwwe a framebuffer object
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
+	
+	// Instruct openGL that we won't bind a color texture with the currently binded FBO
+	glReadBuffer(GL_NONE);
+    GLint normal_loc = glGetFragDataLocation(shaderProgram,"out_Normal");
+    GLint position_loc = glGetFragDataLocation(shaderProgram,"out_Position");
+    GLint color_loc = glGetFragDataLocation(shaderProgram,"out_Color");
+    GLint worldPos_loc = glGetFragDataLocation(shaderProgram,"out_WorldPos");
+    GLenum draws [4];
+    draws[normal_loc] = GL_COLOR_ATTACHMENT0;
+    draws[position_loc] = GL_COLOR_ATTACHMENT1;
+	draws[color_loc] = GL_COLOR_ATTACHMENT2;
+	draws[worldPos_loc] = GL_COLOR_ATTACHMENT3;
+	glDrawBuffers(4, draws);
+	
+	// attach the texture to FBO depth attachment point
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+	glBindTexture(GL_TEXTURE_2D, normalTexture);    
+	glFramebufferTexture(GL_FRAMEBUFFER, draws[normal_loc], normalTexture, 0);
+	glBindTexture(GL_TEXTURE_2D, positionTexture);    
+	glFramebufferTexture(GL_FRAMEBUFFER, draws[position_loc], positionTexture, 0);
+	glBindTexture(GL_TEXTURE_2D, colorTexture);    
+	glFramebufferTexture(GL_FRAMEBUFFER, draws[color_loc], colorTexture, 0);
+	glBindTexture(GL_TEXTURE_2D, worldPosTexture);    
+	glFramebufferTexture(GL_FRAMEBUFFER, draws[worldPos_loc], worldPosTexture, 0);
 
 	// check FBO status
-	GLenum FBOstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	FBOstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(FBOstatus != GL_FRAMEBUFFER_COMPLETE) {
 		printf("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO\n");
-        //checkFramebufferStatus(FBOstatus);
+        checkFramebufferStatus(FBOstatus);
 	}
 
 	// switch back to window-system-provided framebuffer
 	glClear(GL_DEPTH_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void bindFBO() 
+{
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,0); //Bad mojo to unbind the framebuffer using the texture
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    //glColorMask(false,false,false,false);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void initSecondPass() {
+
+	// Screen positions and texture coordinates
+	vertex2_t verts [] = { 
+		{vec3(-1,1,0),  vec2(0,1)},
+		{vec3(-1,-1,0), vec2(0,0)},
+		{vec3(1,-1,0),  vec2(1,0)},
+		{vec3(1,1,0),   vec2(1,1)}
+	};
+
+	// Indices to create triangle using above vertices
+	unsigned short indices[] = {0,1,2,
+		                        0,2,3};
+	bufferSecondPass.numIndices = 6;
+
+	//Allocate vertex array
+	//Vertex arrays encapsulate a set of generic vertex attributes and the buffers they are bound too
+	glGenVertexArrays(1, &(bufferSecondPass.vao));
+    glBindVertexArray(bufferSecondPass.vao);
+
+    
+	//Allocate vbos for data - The vbo will haveboth positions and textures
+	glGenBuffers(1,&(bufferSecondPass.vbo));
+	glGenBuffers(1,&(bufferSecondPass.ibo));
+    
+	//Upload vertex data
+	glBindBuffer(GL_ARRAY_BUFFER, bufferSecondPass.vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    
+	//Use of strided data, Array of Structures instead of Structures of Arrays
+	glVertexAttribPointer(attribsSecondPass::POSITION, 3, GL_FLOAT, GL_FALSE,sizeof(vertex2_t),0);
+	glVertexAttribPointer(attribsSecondPass::TEXCOORD, 2, GL_FLOAT, GL_FALSE,sizeof(vertex2_t),(void*)sizeof(vec3));
+	glEnableVertexAttribArray(attribsSecondPass::POSITION);
+	glEnableVertexAttribArray(attribsSecondPass::TEXCOORD);
+
+    //indices
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferSecondPass.ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSecondPass.numIndices*sizeof(GLushort), indices, GL_STATIC_DRAW);
+    
+	//Unplug Vertex Array
+    glBindVertexArray(0);
 }
 
 int perm[256]= {151,160,137,91,90,15,
@@ -165,9 +352,29 @@ void initNoiseTexture(GLuint *texID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glUniform1i(glGetUniformLocation(passthroughProgram, "u_Noise"),0);
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_Noise"),0);
 	
 	delete[] pixels;
+}
+
+GLuint random_normal_tex;
+GLuint random_scalar_tex;
+void initNoiseSoil() {  
+	random_normal_tex = (unsigned int)SOIL_load_OGL_texture("random_normal.png",0,0,0);
+	glBindTexture(GL_TEXTURE_2D, random_normal_tex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	random_scalar_tex = (unsigned int)SOIL_load_OGL_texture("random.png",0,0,0);
+	glBindTexture(GL_TEXTURE_2D, random_scalar_tex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 int frame = 0;
@@ -196,57 +403,189 @@ void updateTitleFPS()
 	}
 }
 
+glm::vec4 nearModelView;
+glm::vec4 farModelView;
+
 void GetUniforms()
 {
 	glm::mat4 view = cam.GetViewTransform();
 	glm::mat4 perspective = cam.GetPerspective();
 
-	//glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Model"),1,GL_FALSE,&cam.GetModelView()[0][0]);
+	//glUniformMatrix4fv(glGetUniformLocation(shaderProgram,"u_Model"),1,GL_FALSE,&cam.GetModelView()[0][0]);
 	GLuint tex = 0;
 	initNoiseTexture(&tex);
 
-	glm::vec4 nearModelView = view*glm::vec4(0,0,cam.near,1);
-	glm::vec4 farModelView = view*glm::vec4(0,0,cam.far,1);
+	nearModelView = view*glm::vec4(0,0,cam.near,1);
+	farModelView = view*glm::vec4(0,0,cam.far,1);
+
+	glm::vec4 leftModelView = view*glm::vec4(cam.left,0,0,1);
+	glm::vec4 rightModelView = view*glm::vec4(cam.right,0,0,1);
+
+	glm::vec4 topModelView = view*glm::vec4(0,cam.top,0,1);
+	glm::vec4 bottomModelView = view*glm::vec4(0,cam.bottom,0,1);
+
+	glm::vec4 camPosModelView = view*vec4(0,0,0,1.0);
 
 	// The tessellation distance - Terrain that is closer to camera than this value is tessellated
-	float tessDist = -((farModelView.z - nearModelView.z)/3.0 + nearModelView.z);
-	//std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z << std::endl;
-
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Near"), cam.near);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Far"), cam.far);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Left"), cam.left);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Right"), cam.right);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Top"), cam.top);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_Bottom"), cam.bottom);
+	/*float tessDist = -((farModelView.z - nearModelView.z)/3.0 + nearModelView.z);
+	float tessDist2 = -(2.0*(farModelView.z - nearModelView.z)/3.0 + nearModelView.z);*/
 	
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_TessDistance"), tessDist);
-	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_View"), 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(passthroughProgram,"u_Persp"), 1, GL_FALSE, &perspective[0][0]);
-	glUniform1f(glGetUniformLocation(passthroughProgram,"u_InnerTessLevel"), tessellation.innerTessellation);
-	glUniform3f(glGetUniformLocation(passthroughProgram,"u_OuterTessLevel"), 
-		        tessellation.outerTessellation.x, tessellation.outerTessellation.y, tessellation.outerTessellation.z);
+	/*float rangeX = abs(rightModelView.x - leftModelView.x)/2.0;
+	float extraX = abs(tessDist2)*tan(cam.fovx*PI/180.0/2.0);
 
-	glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-    glUniform1i(glGetUniformLocation(passthroughProgram, "u_Depthtex"),0);
+	float rangeY = abs(topModelView.y - bottomModelView.x)/2.0;
+	float extraY = abs(tessDist2)*tan(cam.fovy*PI/180.0/2.0);*/
+
+	float tessDist = -((cam.far - cam.near)/3.0 + cam.near);
+	float tessDist2 = -(2.0*(cam.far - cam.near)/3.0 + cam.near);
+
+	float rangeX = abs(cam.right - cam.left)/2.0;
+	float extraX = abs(tessDist2)*tan(cam.fovx*PI/180.0/2.0);
+
+	float rangeY = abs(cam.top - cam.bottom)/2.0;
+	float extraY = abs(cam.far)*tan(cam.fovy*PI/180.0/2.0);
+
+	//std::cout << "Near: " << extraX << "  Range: " << rangeX << " Far: " << cam.pos.x << "   Trans: " << cam.translate.x << std::endl;
+	/*std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z 
+				<< " Left: " << -camPosModelView.x-rangeX-extraX << "  Right: " << -camPosModelView.x+rangeX+extraX 
+				<< "  top: " << -camPosModelView.y+rangeY+extraY << "  bottom: " << -camPosModelView.y-rangeY-extraY << std::endl;*/
+
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Near"), -cam.near);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Far"), -cam.far);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Left"), -rangeX-extraX);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Right"), rangeX+extraX);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Bottom"), -rangeY-extraY);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Top"), rangeY+extraY);
+
+	glUniform1i(glGetUniformLocation(shaderProgram,"u_Display"), uniformDisplay);
+	
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_TessDistance"), tessDist);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_TessDistance2"), tessDist2);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram,"u_View"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram,"u_Persp"), 1, GL_FALSE, &perspective[0][0]);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_InnerTessLevel"), tessellation.innerTessellation);
+	glUniform3f(glGetUniformLocation(shaderProgram,"u_OuterTessLevel"), 
+		        tessellation.outerTessellation.x, tessellation.outerTessellation.y, tessellation.outerTessellation.z);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_InnerTessLevel2"), tessellation2.innerTessellation);
+	glUniform3f(glGetUniformLocation(shaderProgram,"u_OuterTessLevel2"), 
+		        tessellation2.outerTessellation.x, tessellation2.outerTessellation.y, tessellation2.outerTessellation.z);
 }
+
+void GetUniformsSecondPass()
+{
+	glm::mat4 view = cam.GetViewTransform();
+	glm::mat4 perspective = cam.GetPerspective();
+
+	glUniform1f(glGetUniformLocation(shaderSecondPassProgram,"u_NearModel"), -nearModelView.z);
+	glUniform1f(glGetUniformLocation(shaderSecondPassProgram,"u_FarModel"), -farModelView.z);
+	
+	glUniform1i(glGetUniformLocation(shaderSecondPassProgram,"u_ScreenWidth"), width);
+	glUniform1i(glGetUniformLocation(shaderSecondPassProgram,"u_ScreenHeight"), height);
+	
+	glUniform1i(glGetUniformLocation(shaderSecondPassProgram,"u_Display"), uniformDisplay);
+	glUniform1i(glGetUniformLocation(shaderSecondPassProgram,"u_DisplayFog"), uniformDisplayFog);
+	
+	glUniformMatrix4fv(glGetUniformLocation(shaderSecondPassProgram,"u_View"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderSecondPassProgram,"u_Persp"), 1, GL_FALSE, &perspective[0][0]);
+}
+
+void setTextures()
+{
+    glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D,0); 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//glColorMask(true,true,true,true);
+    glDisable(GL_DEPTH_TEST);
+
+	// Use the clear buffer if you want to just draw want is output in the second pass.
+	// Not using this will make sure that the output from the first pass is considered while displaying the second pass
+	//glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void displaySecondPass() {
+    glUseProgram(shaderSecondPassProgram);
+	GetUniformsSecondPass();
+
+	glBindVertexArray(bufferSecondPass.vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferSecondPass.ibo);
+
+    glEnable(GL_TEXTURE_2D);
+
+	glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_Depthtex"),0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_Normaltex"),1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, positionTexture);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_Positiontex"),2);
+	glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_Colortex"),3);
+	glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, worldPosTexture);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_WorldPostex"),4);
+	glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, random_normal_tex);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_RandomNormaltex"),5);
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, random_scalar_tex);
+    glUniform1i(glGetUniformLocation(shaderSecondPassProgram, "u_RandomScalartex"),6);
+    
+    
+    glDrawElements(GL_TRIANGLES, bufferSecondPass.numIndices, GL_UNSIGNED_SHORT,0);
+
+    glBindVertexArray(0);
+}
+
 
 void display(void)
 {
+	bindFBO();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+
+	// First use the shaders to tessellate and get the correct geometry in the first pass
+	glUseProgram(shaderProgram);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
 	GetUniforms();
 
-	// The line below just displays the mesh
-	if (displayMesh)
+	// GL_LINE displays just the wireframe while GL_FILL displays a solid primitive
+	if (uniformDisplay == DISPLAY_MESH)
+	{
+		glClearColor(0,0,0,1);
 		glPolygonMode(GL_FRONT, GL_LINE);
+	}
 	else
+	{
+		glClearColor(0,0.3,0.6,1.0);
 		glPolygonMode(GL_FRONT, GL_FILL);
+	}
 
-	glDrawElements(GL_PATCHES, triVerticesToDraw,  GL_UNSIGNED_SHORT, 0);
+	GLfloat fogColor[4]= {0.5f, 0.5f, 0.5f, 1.0f};
+	glFogi(GL_FOG_MODE, GL_LINEAR);        // Fog Mode
+	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
+	glFogf(GL_FOG_DENSITY, 0.35f);              // How Dense Will The Fog Be
+	glHint(GL_FOG_HINT, GL_DONT_CARE);          // Fog Hint Value
+	glFogf(GL_FOG_START, 1.0f);             // Fog Start Depth
+	glFogf(GL_FOG_END, 100.0f);               // Fog End Depth
+	//glEnable(GL_FOG); 
+
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glDrawElements(GL_PATCHES, triVerticesToDraw,  GL_UNSIGNED_INT, 0);
+
+	// Set the textures from the first pass to display it in the second pass
+	setTextures();
+
+	// Always want to show solid mesh here as the vbos in this pass are in screen space
+	glPolygonMode(GL_FRONT, GL_FILL);
+	displaySecondPass();
 
 	updateTitleFPS();
 
@@ -254,11 +593,26 @@ void display(void)
 	glutSwapBuffers();
 }
 
-void reshape(GLsizei w, GLsizei h)
+void freeFBO()
 {
-	width = w;
-	height = h;
-	glViewport(0, 0, w, h);
+	glDeleteTextures(1,&depthTexture);
+    glDeleteTextures(1,&normalTexture);
+    glDeleteTextures(1,&positionTexture);
+	glDeleteTextures(1,&colorTexture);
+	glDeleteTextures(1,&worldPosTexture);
+    glDeleteFramebuffers(1,&FBO);
+}
+
+void reshape(int w, int h)
+{
+    width = w;
+    height = h;
+    glBindFramebuffer(GL_FRAMEBUFFER,0);
+	glViewport(0,0,(GLsizei)w,(GLsizei)h);
+	if (FBO != 0 || depthTexture != 0 || normalTexture != 0 ) {
+		freeFBO();
+	}
+    initFBO(w,h);
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -297,7 +651,11 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 	case 'm':
 	case 'M':
-		displayMesh = !displayMesh;
+		uniformDisplay = DISPLAY_MESH;
+		break;
+	case 'p':
+	case 'P':
+		uniformDisplay = DISPLAY_SHADED;
 		break;
 	case 'i':
 		// Decrease Inner Tesselation
@@ -316,6 +674,61 @@ void keyboard(unsigned char key, int x, int y)
 	case 'O':
 		// Decrease Outer Tesselation
 		tessellation.outerTessellation += glm::vec3(1.0);
+		break;
+	case 'k':
+		// Decrease Inner Tesselation
+		if (tessellation2.innerTessellation > 1.0)
+			tessellation2.innerTessellation -= 1.0;
+		break;
+	case 'K':
+		// Increase Inner Tesselation
+		tessellation2.innerTessellation += 1.0;
+		break;
+	case 'l':
+		// Decrease Outer Tesselation
+		if (tessellation2.outerTessellation.x > 1.0)
+			tessellation2.outerTessellation -= glm::vec3(1.0);
+		break;
+	case 'L':
+		// Decrease Outer Tesselation
+		tessellation2.outerTessellation += glm::vec3(1.0);
+		break;
+	case 't':
+	case 'T':
+		tessellation.innerTessellation = 14.0;
+		tessellation.outerTessellation = vec3(14.0);
+		tessellation2.innerTessellation = 6.0;
+		tessellation2.outerTessellation = vec3(6.0);
+		break;
+	case 'c':
+	case 'C':
+		uniformDisplay = DISPLAY_OCCLUSION;
+		break;
+	case 'h':
+	case 'H':
+		// Display depth
+		uniformDisplay = DISPLAY_DEPTH;
+		break;
+	case 'n':
+	case 'N':
+		// Display normals
+		uniformDisplay = DISPLAY_NORMAL;
+		break;
+	case 'f':
+		// Display Fog
+		uniformDisplayFog = DISPLAY_FOG;
+		break;
+	case 'F':
+		// Don't display fog
+		uniformDisplayFog = 0;
+		break;
+	case 'g':
+		// Display fog based on depth
+		uniformDisplayFog = DISPLAY_DEPTH_FOG;
+		break;
+	case 'G':
+		// Display fog based on height
+		uniformDisplayFog = DISPLAY_LOWER_FOG;
 		break;
 	}
 }
@@ -356,11 +769,11 @@ void mouse_motion(int x, int y)
 		}
 		else
 		{
-			if (deltaX > 0) cam.rot.y -= 5;
-			else if (deltaX < 0) cam.rot.y += 5;
+			if (deltaX > 0) cam.rot.y -= 2.0;
+			else if (deltaX < 0) cam.rot.y += 2.0;
 			else 
-				if (deltaY > 0) cam.rot.x += 5;
-			else if (deltaY < 0) cam.rot.x -= 5;
+				if (deltaY > 0) cam.rot.x += 2.0;
+			else if (deltaY < 0) cam.rot.x -= 2.0;
 		}
 		break;
    }
@@ -402,11 +815,18 @@ int main(int argc, char** argv)
 	// Create, compile and attach shaders
 	bool hasGeometryShader = true;
 	bool hasTessellationShader = true;
-	passthroughProgram = initShader("simpleVS.glsl", "simpleFS.glsl", "simpleGS.glsl", hasGeometryShader, 
+	shaderSecondPassProgram = initShader("secondPassVS.glsl", "secondPassFS.glsl", NULL, false, 
+		                                 NULL, NULL, false);
+	//initSSAO();
+	
+	shaderProgram = initShader("simpleVS.glsl", "simpleFS.glsl", "simpleGS.glsl", hasGeometryShader, 
 		                            "Terrain_TCS.glsl", "Terrain_TES.glsl", hasTessellationShader);
+	initFBO(width, height);
 	init();
+	initSecondPass();
 
-	displayMesh = true;
+	uniformDisplay = DISPLAY_MESH;
+	uniformDisplayFog = DISPLAY_FOG;
 	std::cout << "GPU Terrain Generator" << std::endl;
 
 	glutDisplayFunc(display);

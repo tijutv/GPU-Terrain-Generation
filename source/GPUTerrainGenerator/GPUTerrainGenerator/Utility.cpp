@@ -8,13 +8,13 @@ using std::ios;
 
 namespace Utility {
 
-	typedef struct {
+	/*typedef struct {
 		GLuint vertex;
 		GLuint fragment;
 		GLuint geometry;
 		GLuint tess_tcs;
 		GLuint tess_tes;
-	} shaders_t;
+	} shaders_t;*/
 
 	char* loadFile(const char *fname, GLint &fSize)
 	{

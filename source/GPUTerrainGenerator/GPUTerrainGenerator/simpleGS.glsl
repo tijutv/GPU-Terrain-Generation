@@ -4,9 +4,11 @@
 layout(triangles) in;
 
 in vec3 tes_worldCoord[3];
+in vec4 tes_Position[3];
 
 out vec3 gs_normal;
 out vec3 gs_worldCoord;
+out vec4 gs_Position;
 
 void main(void)
 {
@@ -20,7 +22,8 @@ void main(void)
    {
 	   gl_Position = gl_PositionIn[i];
 	   gs_worldCoord = tes_worldCoord[i];
-	   gs_normal = normal;
+	   gs_normal = vec3(normal.x, -normal.y, -normal.z);
+	   gs_Position = tes_Position[i];
 	   EmitVertex();
    }
    EndPrimitive();
