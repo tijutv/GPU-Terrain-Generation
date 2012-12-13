@@ -33,6 +33,7 @@ GLuint normalTexture = 0;
 GLuint positionTexture = 0;
 GLuint colorTexture = 0;
 GLuint worldPosTexture = 0;
+GLuint clickedPosTexture = 0;
 GLuint FBO = 0;
 
 GLuint vao;
@@ -70,8 +71,17 @@ int theButtonState = 0;
 int theModifierState = 0;
 int lastX = 0, lastY = 0;
 
+const unsigned int numDeforms = 20;
 int uniformDisplay;
 int uniformDisplayFog;
+bool discoLight;
+bool deform;
+bool deformClickChanged;
+float deformPos;
+vec2 deformClickValue;
+vec4 deformPosArr[numDeforms];
+int deformArrIndex;
+vec3 terrainColor;
 
 struct Tess
 {
@@ -172,6 +182,7 @@ void initFBO(int w, int h) {
 	glGenTextures(1, &positionTexture);
 	glGenTextures(1, &colorTexture);
 	glGenTextures(1, &worldPosTexture);
+	glGenTextures(1, &clickedPosTexture);
 	
 	glBindTexture(GL_TEXTURE_2D, depthTexture);	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -179,6 +190,7 @@ void initFBO(int w, int h) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 
 	glBindTexture(GL_TEXTURE_2D, normalTexture);
@@ -209,7 +221,14 @@ void initFBO(int w, int h) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
 		
-	// creatwwe a framebuffer object
+	glBindTexture(GL_TEXTURE_2D, clickedPosTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
+	
+	// create a framebuffer object
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	
@@ -219,12 +238,18 @@ void initFBO(int w, int h) {
     GLint position_loc = glGetFragDataLocation(shaderProgram,"out_Position");
     GLint color_loc = glGetFragDataLocation(shaderProgram,"out_Color");
     GLint worldPos_loc = glGetFragDataLocation(shaderProgram,"out_WorldPos");
-    GLenum draws [4];
+	GLenum draws [4];
     draws[normal_loc] = GL_COLOR_ATTACHMENT0;
     draws[position_loc] = GL_COLOR_ATTACHMENT1;
 	draws[color_loc] = GL_COLOR_ATTACHMENT2;
 	draws[worldPos_loc] = GL_COLOR_ATTACHMENT3;
 	glDrawBuffers(4, draws);
+
+	// The first attachment in the second pass is the output color.
+	// So we need the 2nd buffer
+	/*GLint clickedPos_loc = glGetFragDataLocation(shaderSecondPassProgram,"out_ClickedDepth");
+    GLenum draws1[2];
+	draws1[clickedPos_loc] = GL_COLOR_ATTACHMENT1;*/
 	
 	// attach the texture to FBO depth attachment point
     glBindTexture(GL_TEXTURE_2D, depthTexture);
@@ -237,6 +262,8 @@ void initFBO(int w, int h) {
 	glFramebufferTexture(GL_FRAMEBUFFER, draws[color_loc], colorTexture, 0);
 	glBindTexture(GL_TEXTURE_2D, worldPosTexture);    
 	glFramebufferTexture(GL_FRAMEBUFFER, draws[worldPos_loc], worldPosTexture, 0);
+	/*glBindTexture(GL_TEXTURE_2D, clickedPosTexture);    
+	glFramebufferTexture(GL_FRAMEBUFFER, draws1[clickedPos_loc], clickedPosTexture, 0);*/
 
 	// check FBO status
 	FBOstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -423,6 +450,8 @@ void GetUniforms()
 
 	glm::vec4 topModelView = view*glm::vec4(0,cam.top,0,1);
 	glm::vec4 bottomModelView = view*glm::vec4(0,cam.bottom,0,1);
+	/*std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z << " Left: " << leftModelView.x 
+		<< "  Right: " << rightModelView.x << "  top: " << topModelView.y << "  bottom: " << bottomModelView.y << std::endl << std::endl;*/
 
 	glm::vec4 camPosModelView = view*vec4(0,0,0,1.0);
 
@@ -436,7 +465,7 @@ void GetUniforms()
 	float rangeY = abs(topModelView.y - bottomModelView.x)/2.0;
 	float extraY = abs(tessDist2)*tan(cam.fovy*PI/180.0/2.0);*/
 
-	float tessDist = -((cam.far - cam.near)/3.0 + cam.near);
+	float tessDist = -((2.0*cam.far - cam.near)/3.0 + cam.near);
 	float tessDist2 = -(2.0*(cam.far - cam.near)/3.0 + cam.near);
 
 	float rangeX = abs(cam.right - cam.left)/2.0;
@@ -444,7 +473,7 @@ void GetUniforms()
 
 	float rangeY = abs(cam.top - cam.bottom)/2.0;
 	float extraY = abs(cam.far)*tan(cam.fovy*PI/180.0/2.0);
-
+	
 	//std::cout << "Near: " << extraX << "  Range: " << rangeX << " Far: " << cam.pos.x << "   Trans: " << cam.translate.x << std::endl;
 	/*std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z 
 				<< " Left: " << -camPosModelView.x-rangeX-extraX << "  Right: " << -camPosModelView.x+rangeX+extraX 
@@ -469,12 +498,54 @@ void GetUniforms()
 	glUniform1f(glGetUniformLocation(shaderProgram,"u_InnerTessLevel2"), tessellation2.innerTessellation);
 	glUniform3f(glGetUniformLocation(shaderProgram,"u_OuterTessLevel2"), 
 		        tessellation2.outerTessellation.x, tessellation2.outerTessellation.y, tessellation2.outerTessellation.z);
+
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_ShowTerrainColor"), discoLight? 1.0 : -1.0);
+	glUniform3f(glGetUniformLocation(shaderProgram,"u_TerrainColor"), terrainColor.x, terrainColor.y, terrainColor.z);
+
+	float deformVal = -1;
+
+	// If there's an entry for size of blast then we need to run deformation in the TES shader
+	if (deformPosArr[0].w > 0)
+	{
+		deformVal = 1;
+	}
+
+	vec4 deformPos;
+	if (deform && deformClickChanged)
+	{
+		deformPos.w = 0;
+		deformVal = 1;
+		mat4 invView = inverse(view);
+		// Transform the clicked position to world
+		deformPos.x = cam.left + deformClickValue.x * (2.0*rangeX);
+		deformPos.y = deformPos.x;//.y + deformClickValue.y * (2.0*rangeY);
+		deformPos.z = cam.near;
+
+		vec4 deformPosNorm = normalize(deformPos);
+		
+		deformPos.x = -camPosModelView.x + deformPosNorm.x * 45.0;
+		deformPos.z = -camPosModelView.z + deformPosNorm.z * -45.0;
+		//deformPos = view*vec4(deformPos.x, deformPos.y, deformPos.z, 1.0);
+		// Radius
+		deformPos.w = ((perm[((int)abs(deformPos.z*200))%256]+perm[((int)abs(deformPos.x)*200)%256])/256.0) * 4.0 + 3.0;
+
+		deformPosArr[deformArrIndex] = deformPos;
+		++deformArrIndex;
+		deformArrIndex = deformArrIndex % numDeforms;
+		deformClickChanged = false;
+		//std::cout << "Deform: " << deformPos.x << ", " << deformPos.y << ", " << deformPos.z << ", " << deformPos.w << std::endl << std::endl;
+	}
+
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_Deform"), deformVal);
+	glUniform4fv(glGetUniformLocation(shaderProgram,"u_DeformPosArr"), numDeforms*4, &(deformPosArr[0][0]));
 }
 
 void GetUniformsSecondPass()
 {
 	glm::mat4 view = cam.GetViewTransform();
 	glm::mat4 perspective = cam.GetPerspective();
+	nearModelView = view*glm::vec4(0,0,cam.near,1);
+	farModelView = view*glm::vec4(0,0,cam.far,1);
 
 	glUniform1f(glGetUniformLocation(shaderSecondPassProgram,"u_NearModel"), -nearModelView.z);
 	glUniform1f(glGetUniformLocation(shaderSecondPassProgram,"u_FarModel"), -farModelView.z);
@@ -563,18 +634,9 @@ void display(void)
 	}
 	else
 	{
-		glClearColor(0,0.3,0.6,1.0);
+		glClearColor(0.1,0.4,0.7,1.0);
 		glPolygonMode(GL_FRONT, GL_FILL);
 	}
-
-	GLfloat fogColor[4]= {0.5f, 0.5f, 0.5f, 1.0f};
-	glFogi(GL_FOG_MODE, GL_LINEAR);        // Fog Mode
-	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
-	glFogf(GL_FOG_DENSITY, 0.35f);              // How Dense Will The Fog Be
-	glHint(GL_FOG_HINT, GL_DONT_CARE);          // Fog Hint Value
-	glFogf(GL_FOG_START, 1.0f);             // Fog Start Depth
-	glFogf(GL_FOG_END, 100.0f);               // Fog End Depth
-	//glEnable(GL_FOG); 
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -586,7 +648,7 @@ void display(void)
 	// Always want to show solid mesh here as the vbos in this pass are in screen space
 	glPolygonMode(GL_FRONT, GL_FILL);
 	displaySecondPass();
-
+	
 	updateTitleFPS();
 
 	glutPostRedisplay();
@@ -609,7 +671,8 @@ void reshape(int w, int h)
     height = h;
     glBindFramebuffer(GL_FRAMEBUFFER,0);
 	glViewport(0,0,(GLsizei)w,(GLsizei)h);
-	if (FBO != 0 || depthTexture != 0 || normalTexture != 0 ) {
+	if (FBO != 0 || depthTexture != 0 || normalTexture != 0 || 
+		positionTexture != 0 || colorTexture != 0 || worldPosTexture != 0) {
 		freeFBO();
 	}
     initFBO(w,h);
@@ -650,12 +713,11 @@ void keyboard(unsigned char key, int x, int y)
 		cam.lookPos.x += 1;
 		break;
 	case 'm':
-	case 'M':
 		uniformDisplay = DISPLAY_MESH;
 		break;
-	case 'p':
-	case 'P':
+	case 'M':
 		uniformDisplay = DISPLAY_SHADED;
+		
 		break;
 	case 'i':
 		// Decrease Inner Tesselation
@@ -730,15 +792,39 @@ void keyboard(unsigned char key, int x, int y)
 		// Display fog based on height
 		uniformDisplayFog = DISPLAY_LOWER_FOG;
 		break;
+	case 'q':
+	case 'Q':
+		// Disco Light effect On/Off
+		discoLight = !discoLight;
+		break;
+	case 'b':
+		// Deform - blast mode
+		deform = !deform;
+		break;
 	}
 }
 
 void mouse(int button, int state, int x, int y)
 {
-   theButtonState = button;
-   theModifierState = glutGetModifiers();
-   lastX = x;
-   lastY = y;
+	theButtonState = button;
+	theModifierState = glutGetModifiers();
+	lastX = x;
+	lastY = y;
+
+    GLbyte color[4];
+	GLfloat depth;
+	GLuint index;
+ 
+	if (deform)
+	{
+		deformClickValue = vec2(x*1.0/width, (height - y - 1)*1.0/height);
+		deformClickChanged = true;
+	}
+
+	if (discoLight)
+	{
+		terrainColor = vec3(perm[(int)x*255/width], perm[(int)y*255/height], perm[(int)x*y*255/(width*height)])/vec3(256.0,256.0,256.0);
+	}
 }
 
 void mouse_motion(int x, int y)
@@ -809,16 +895,24 @@ int main(int argc, char** argv)
 		exit(0);
 	}
 
+	terrainColor = vec3(0.5,0.8,0.1);
 	tessellation.innerTessellation = 1.0f;
 	tessellation.outerTessellation = glm::vec3(1);
+	discoLight = false;
+	deform = false;
+	deformClickChanged = false;
+	
+	for (int i = 0; i<numDeforms; ++i)
+	{
+		deformPosArr[i] = vec4(-1);
+	}
+	int deformArrIndex = 0;
 
 	// Create, compile and attach shaders
 	bool hasGeometryShader = true;
 	bool hasTessellationShader = true;
 	shaderSecondPassProgram = initShader("secondPassVS.glsl", "secondPassFS.glsl", NULL, false, 
 		                                 NULL, NULL, false);
-	//initSSAO();
-	
 	shaderProgram = initShader("simpleVS.glsl", "simpleFS.glsl", "simpleGS.glsl", hasGeometryShader, 
 		                            "Terrain_TCS.glsl", "Terrain_TES.glsl", hasTessellationShader);
 	initFBO(width, height);

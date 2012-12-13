@@ -2,9 +2,13 @@
 
 layout(triangles) in;
 
+const unsigned int numDeforms = 20;
+
 uniform mat4 u_View;
 uniform mat4 u_Persp;
 uniform sampler2D u_Noise;
+uniform float u_Deform;
+uniform vec4 u_DeformPosArr[numDeforms];
 
 in vec3 tcs_Position[];
 
@@ -149,11 +153,40 @@ void main(void)
 	// Tessellate and give random height to terrrain
 	float height = turbulence(4, vec3(tes_worldCoord.x, 0.0, tes_worldCoord.z), 0.07, 0.35);
 	//height -= 0.02;
-	height = clamp(height, 0.0, 0.8);
+	height = clamp(height, 0.0, 0.7);
 	if ((tes_worldCoord.y+height) < 1.0)
 		height = 0.0;
 	//height *= 30;
 	tes_worldCoord = vec3(tes_worldCoord.x, tes_worldCoord.y+height, tes_worldCoord.z);
+
+	// Deforming terrain
+	if (u_DeformPosArr[0].w > 0)
+	{
+		for (int i = 0; i<numDeforms; ++i)
+		{
+			if (u_DeformPosArr[i].w > 0)
+			{
+				float deformRadius = u_DeformPosArr[i].w;
+				vec3 currDeformPos = u_DeformPosArr[i].xyz;
+				vec3 minVal = currDeformPos - vec3(deformRadius, 0, deformRadius);
+				vec3 maxVal = currDeformPos + vec3(deformRadius, 0, deformRadius);
+				vec2 diff = vec2(tes_worldCoord.x, tes_worldCoord.z) - vec2(currDeformPos.x, currDeformPos.z);
+				if (length(diff) < deformRadius)
+				{
+					float blowHeight = turbulence(4, vec3(currDeformPos.x, 0.0, currDeformPos.z), 0.07, 0.35);
+					blowHeight = clamp(blowHeight, 0.0, 0.8);
+					blowHeight *= 10.0;
+					//tes_worldCoord.y -= (0.95+2*clamp(height,0.0,0.2));
+					if (tes_worldCoord.y > (blowHeight + clamp(height, 0.0, 0.4)))
+					{
+						tes_worldCoord.y = min(tes_worldCoord.y, blowHeight);
+						tes_worldCoord.y = max(tes_worldCoord.y,tes_worldCoord.y + clamp(height, 0.0, 0.4));
+					}
+				}
+			}
+		}
+	}
+
 	tes_Position = u_View * vec4(tes_worldCoord, 1.0);
 	vec4 pos = u_Persp * tes_Position;
 	gl_Position = pos;///pos.w;

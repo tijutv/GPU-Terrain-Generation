@@ -224,11 +224,8 @@ vec3 poissonSphere[NUM_WS_SAMPLES] = vec3[](
 
 
 const float SPHERE_RADIUS = 0.3f;
-float occlusionWithWorldSpaceSamples(vec2 texcoord,
-	vec3 position,
-	vec3 normal) {
-
-	
+float occlusionWithWorldSpaceSamples(vec2 texcoord, vec3 position, vec3 normal) 
+{
 	float occlusion = 0.0;
 	normal = normal * 2.0 -1.0;
 	normal = normalize(normal);
@@ -292,7 +289,7 @@ void main(void)
 		break;
 	default:
 		float diffuse = dot(-normal,normalize(vec3(0,0,-1))) + dot(-normal,normalize(vec3(0,-1,0))) + dot(-normal,normalize(vec3(1,0,0)));
-		float ambient = 0.1;
+		float ambient = 0.2;
 		vec3 matColor = texture(u_Colortex, fs_Texcoord).xyz;
 		
 		// Calculate SSAO
@@ -324,4 +321,5 @@ void main(void)
 		}
 		out_Color = vec4(colorFinal, 1.0);
 	}
+	
 }

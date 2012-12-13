@@ -10,6 +10,8 @@ out vec4 out_Color;
 out vec4 out_WorldPos;
 
 uniform int u_DisplayMesh;
+uniform float u_ShowTerrainColor;
+uniform vec3 u_TerrainColor;
 
 void main(void)
 {
@@ -46,14 +48,10 @@ void main(void)
 		out_Color = vec4(colorHeight.xyz, 1.0);
 	}
 
-	vec3 matColor = vec3(0.9,0.9,0.1);
-	//out_Color = vec4(0.1,0.6,0.6,1.0);
-
-	// Diffuse Shading
-	//out_Color = vec4(vec3(dot(gs_normal,normalize(vec3(0,-1,0)))) * vec3(matColor), 1.0);
-
-	//out_Color = vec4(vec3(1.0-abs(screenPos.z)/101.0),1);
-
+	if (u_ShowTerrainColor > 0)
+	{
+		out_Color = vec4(u_TerrainColor, 1.0);
+	}
 
 	out_Position = gs_Position;
 	out_Normal = vec4(gs_normal, 0.0);
