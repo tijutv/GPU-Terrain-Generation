@@ -1,6 +1,15 @@
 #version 400
 
 uniform sampler2D u_Noise;
+uniform int u_NoiseOctaves;
+uniform float u_NoiseLacunarity;
+uniform float u_NoiseGain;
+
+uniform sampler2D u_HeightMap;
+uniform float u_UseHeightMap;
+uniform float u_LeftMeshMin;
+uniform float u_NearMeshMin;
+uniform vec2 u_MeshSize;
 
 in vec4 Position;
 
@@ -134,18 +143,28 @@ float RidgedMultiFractal(vec3 point, float H, float lacunarity, float octaves, f
 
 void main(void)
 {
-	float height = turbulence(4, Position.xyz, 0.07, 0.35);
-	height -= 0.02;
-	height = max(height, 0.0);
-	height *= 30;
+	if (u_UseHeightMap > 0)
+	{
+		vec2 texCoord = vec2((Position.x + 512.0)/1024.0, (Position.z - 1.0)/1024.0);
+		float height = texture(u_HeightMap, texCoord).r;
+		height *= 30.0;
+		vs_Position = vec3(Position.x, Position.y+height, Position.z);
+	}
+	else
+	{
+		float height = turbulence(u_NoiseOctaves, Position.xyz, u_NoiseLacunarity, u_NoiseGain);
+		height -= 0.02;
+		height = max(height, 0.0);
+		height *= 30;
 
-	/*height = RidgedMultiFractal(Position.xyz, 1.0, 2.2, 5, 1.0, 2.0);
-	height = step(0.5, height) * height;
-	height *= 0.5;
-	height = clamp(height, 0.0, 1.0);
-	height *= 10;
-	height = max(height, 0.0);*/
+		/*height = RidgedMultiFractal(Position.xyz, 1.0, 2.2, 5, 1.0, 2.0);
+		height = step(0.5, height) * height;
+		height *= 0.5;
+		height = clamp(height, 0.0, 1.0);
+		height *= 10;
+		height = max(height, 0.0);*/
 
-	vs_Position = vec3(Position.x, Position.y+height, Position.z);
-	//vs_Position = Position.xyz;
+		vs_Position = vec3(Position.x, Position.y+height, Position.z);
+		//vs_Position = Position.xyz;
+	}
 }

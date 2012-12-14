@@ -33,7 +33,6 @@ GLuint normalTexture = 0;
 GLuint positionTexture = 0;
 GLuint colorTexture = 0;
 GLuint worldPosTexture = 0;
-GLuint clickedPosTexture = 0;
 GLuint FBO = 0;
 
 GLuint vao;
@@ -71,6 +70,14 @@ int theButtonState = 0;
 int theModifierState = 0;
 int lastX = 0, lastY = 0;
 
+vec2 meshX;
+vec2 meshZ;
+vec2 meshSize;
+
+int noiseOctaves = 4;
+float noiseLacunarity = 0.07;
+float noiseGain = 0.35;
+
 const unsigned int numDeforms = 20;
 int uniformDisplay;
 int uniformDisplayFog;
@@ -82,6 +89,8 @@ vec2 deformClickValue;
 vec4 deformPosArr[numDeforms];
 int deformArrIndex;
 vec3 terrainColor;
+bool useHeightMap;
+bool tessDistSame;
 
 struct Tess
 {
@@ -145,7 +154,14 @@ GLuint initSecondPassShader(const char* vShaderFile, const char* fShaderFile, co
 
 void init()
 {
-	Terrain terrain(-800.0f, 800.0f, 1, 2500);
+	meshX = vec2(-512.0, 512.0);
+	meshZ = vec2(1.0, 1025.0);
+	meshX = vec2(-800.0, 800.0);
+	meshZ = vec2(1.0, 2500.0);
+	meshSize = vec2(meshX.y - meshX.x, meshZ.y - meshZ.x);
+	//Terrain terrain(-800.0f, 800.0f, 1, 2500);
+	Terrain terrain;
+	terrain.InitializeTerrain(meshX.x, meshX.y, meshZ.x, meshZ.y);
 	terrain.GenerateTerrainData();
 
 	//GLushort indices[] = { 0, 1, 3, 3, 1, 2 };
@@ -182,7 +198,6 @@ void initFBO(int w, int h) {
 	glGenTextures(1, &positionTexture);
 	glGenTextures(1, &colorTexture);
 	glGenTextures(1, &worldPosTexture);
-	glGenTextures(1, &clickedPosTexture);
 	
 	glBindTexture(GL_TEXTURE_2D, depthTexture);	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -221,13 +236,6 @@ void initFBO(int w, int h) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
 		
-	glBindTexture(GL_TEXTURE_2D, clickedPosTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F , w, h, 0, GL_RGBA, GL_FLOAT,0);
-	
 	// create a framebuffer object
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -245,12 +253,6 @@ void initFBO(int w, int h) {
 	draws[worldPos_loc] = GL_COLOR_ATTACHMENT3;
 	glDrawBuffers(4, draws);
 
-	// The first attachment in the second pass is the output color.
-	// So we need the 2nd buffer
-	/*GLint clickedPos_loc = glGetFragDataLocation(shaderSecondPassProgram,"out_ClickedDepth");
-    GLenum draws1[2];
-	draws1[clickedPos_loc] = GL_COLOR_ATTACHMENT1;*/
-	
 	// attach the texture to FBO depth attachment point
     glBindTexture(GL_TEXTURE_2D, depthTexture);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
@@ -262,8 +264,6 @@ void initFBO(int w, int h) {
 	glFramebufferTexture(GL_FRAMEBUFFER, draws[color_loc], colorTexture, 0);
 	glBindTexture(GL_TEXTURE_2D, worldPosTexture);    
 	glFramebufferTexture(GL_FRAMEBUFFER, draws[worldPos_loc], worldPosTexture, 0);
-	/*glBindTexture(GL_TEXTURE_2D, clickedPosTexture);    
-	glFramebufferTexture(GL_FRAMEBUFFER, draws1[clickedPos_loc], clickedPosTexture, 0);*/
 
 	// check FBO status
 	FBOstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -384,8 +384,30 @@ void initNoiseTexture(GLuint *texID)
 	delete[] pixels;
 }
 
+GLuint heightMapTex;
 GLuint random_normal_tex;
 GLuint random_scalar_tex;
+GLuint random_scalar_tex1;
+void loadHeightMap()
+{
+	heightMapTex = (unsigned int)SOIL_load_OGL_texture("West_Norway.png",0,0,0);
+	glBindTexture(GL_TEXTURE_2D, heightMapTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	random_scalar_tex1 = (unsigned int)SOIL_load_OGL_texture("random.png",0,0,0);
+	glBindTexture(GL_TEXTURE_2D, random_scalar_tex1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
 void initNoiseSoil() {  
 	random_normal_tex = (unsigned int)SOIL_load_OGL_texture("random_normal.png",0,0,0);
 	glBindTexture(GL_TEXTURE_2D, random_normal_tex);
@@ -465,8 +487,10 @@ void GetUniforms()
 	float rangeY = abs(topModelView.y - bottomModelView.x)/2.0;
 	float extraY = abs(tessDist2)*tan(cam.fovy*PI/180.0/2.0);*/
 
-	float tessDist = -((2.0*cam.far - cam.near)/3.0 + cam.near);
+	float tessDist = -((1.0*cam.far - cam.near)/3.0 + cam.near);
 	float tessDist2 = -(2.0*(cam.far - cam.near)/3.0 + cam.near);
+	if (tessDistSame)
+		tessDist = tessDist2;
 
 	float rangeX = abs(cam.right - cam.left)/2.0;
 	float extraX = abs(tessDist2)*tan(cam.fovx*PI/180.0/2.0);
@@ -478,6 +502,10 @@ void GetUniforms()
 	/*std::cout << "Near: " << nearModelView.z << " Far: " << farModelView.z 
 				<< " Left: " << -camPosModelView.x-rangeX-extraX << "  Right: " << -camPosModelView.x+rangeX+extraX 
 				<< "  top: " << -camPosModelView.y+rangeY+extraY << "  bottom: " << -camPosModelView.y-rangeY-extraY << std::endl;*/
+
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_LeftMeshMin"), meshX.x);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_NearMeshMin"), meshZ.x);
+	glUniform2f(glGetUniformLocation(shaderProgram,"u_MeshSize"), meshSize.x, meshSize.y);
 
 	glUniform1f(glGetUniformLocation(shaderProgram,"u_Near"), -cam.near);
 	glUniform1f(glGetUniformLocation(shaderProgram,"u_Far"), -cam.far);
@@ -499,6 +527,12 @@ void GetUniforms()
 	glUniform3f(glGetUniformLocation(shaderProgram,"u_OuterTessLevel2"), 
 		        tessellation2.outerTessellation.x, tessellation2.outerTessellation.y, tessellation2.outerTessellation.z);
 
+	glUniform1i(glGetUniformLocation(shaderProgram,"u_NoiseOctaves"), noiseOctaves);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_NoiseLacunarity"), noiseLacunarity);
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_NoiseGain"), noiseGain);
+	
+	glUniform1f(glGetUniformLocation(shaderProgram,"u_UseHeightMap"), useHeightMap? 1.0 : -1.0);
+	
 	glUniform1f(glGetUniformLocation(shaderProgram,"u_ShowTerrainColor"), discoLight? 1.0 : -1.0);
 	glUniform3f(glGetUniformLocation(shaderProgram,"u_TerrainColor"), terrainColor.x, terrainColor.y, terrainColor.z);
 
@@ -639,6 +673,16 @@ void display(void)
 	}
 
 	glBindVertexArray(vao);
+	glEnable(GL_TEXTURE_2D);
+
+	glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_2D, heightMapTex);
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_HeightMap"),7);
+
+	glActiveTexture(GL_TEXTURE8);
+    glBindTexture(GL_TEXTURE_2D, random_scalar_tex1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_RandomScalartex1"),8);
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glDrawElements(GL_PATCHES, triVerticesToDraw,  GL_UNSIGNED_INT, 0);
 
@@ -766,8 +810,8 @@ void keyboard(unsigned char key, int x, int y)
 	case 'C':
 		uniformDisplay = DISPLAY_OCCLUSION;
 		break;
-	case 'h':
-	case 'H':
+	case 'v':
+	case 'V':
 		// Display depth
 		uniformDisplay = DISPLAY_DEPTH;
 		break;
@@ -801,7 +845,33 @@ void keyboard(unsigned char key, int x, int y)
 		// Deform - blast mode
 		deform = !deform;
 		break;
+	case 'h':
+	case 'H':
+		// Display using height map
+		useHeightMap = !useHeightMap;
+		break;
+	case 'r':
+		//noiseOctaves--;
+		noiseLacunarity -= 0.01;
+		break;
+	case 'R':
+		//noiseOctaves++;
+		noiseLacunarity += 0.01;
+		break;
+	case 'p':
+		//noiseOctaves--;
+		noiseGain -= 0.1;
+		break;
+	case 'P':
+		//noiseOctaves++;
+		noiseGain += 0.1;
+		break;
+	case 'j':
+		tessDistSame = !tessDistSame;
+		break;
 	}
+
+	//std::cout << " Noise - Octaves: " << noiseOctaves << ", Lac: " << noiseLacunarity << ", Gain: " << noiseGain << std::endl;
 }
 
 void mouse(int button, int state, int x, int y)
@@ -811,11 +881,7 @@ void mouse(int button, int state, int x, int y)
 	lastX = x;
 	lastY = y;
 
-    GLbyte color[4];
-	GLfloat depth;
-	GLuint index;
- 
-	if (deform)
+    if (deform)
 	{
 		deformClickValue = vec2(x*1.0/width, (height - y - 1)*1.0/height);
 		deformClickChanged = true;
@@ -895,6 +961,8 @@ int main(int argc, char** argv)
 		exit(0);
 	}
 
+	tessDistSame = false;
+	useHeightMap = false;
 	terrainColor = vec3(0.5,0.8,0.1);
 	tessellation.innerTessellation = 1.0f;
 	tessellation.outerTessellation = glm::vec3(1);
@@ -917,6 +985,7 @@ int main(int argc, char** argv)
 		                            "Terrain_TCS.glsl", "Terrain_TES.glsl", hasTessellationShader);
 	initFBO(width, height);
 	init();
+	loadHeightMap();
 	initSecondPass();
 
 	uniformDisplay = DISPLAY_MESH;

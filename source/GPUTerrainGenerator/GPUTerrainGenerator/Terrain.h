@@ -9,8 +9,21 @@ class Terrain:public Mesh
 	float minZ;
 	float maxZ;
 public:
-	Terrain();
+	Terrain()
+	{
+		minX = 0;
+		maxX = 0;
+		minZ = 0;
+		maxZ = 0;
+	}
 	Terrain(float f_minX, float f_maxX, float f_minZ, float f_maxZ)
+	{
+		minX = f_minX;
+		maxX = f_maxX;
+		minZ = f_minZ;
+		maxZ = f_maxZ;
+	}
+	void InitializeTerrain(float f_minX, float f_maxX, float f_minZ, float f_maxZ)
 	{
 		minX = f_minX;
 		maxX = f_maxX;

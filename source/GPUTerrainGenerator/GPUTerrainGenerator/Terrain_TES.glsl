@@ -9,6 +9,10 @@ uniform mat4 u_Persp;
 uniform sampler2D u_Noise;
 uniform float u_Deform;
 uniform vec4 u_DeformPosArr[numDeforms];
+uniform sampler2D u_HeightMap;
+uniform float u_UseHeightMap;
+
+uniform sampler2D u_RandomScalartex;
 
 in vec3 tcs_Position[];
 
@@ -151,12 +155,27 @@ void main(void)
 	tes_worldCoord = p0 + p1 + p2;
 
 	// Tessellate and give random height to terrrain
-	float height = turbulence(4, vec3(tes_worldCoord.x, 0.0, tes_worldCoord.z), 0.07, 0.35);
-	//height -= 0.02;
-	height = clamp(height, 0.0, 0.7);
-	if ((tes_worldCoord.y+height) < 1.0)
-		height = 0.0;
-	//height *= 30;
+	float height;
+	//if (u_UseHeightMap > 0)
+	//{
+	//	vec2 texCoord = vec2((tes_worldCoord.x + 512.0)/1024.0, (tes_worldCoord.z - 1.0)/1024.0);
+	//	height = texture(u_HeightMap, texCoord).r;
+	//	//height = clamp(height, 0.0, 0.7);
+	//	height *= 7.0;
+	//	//vs_Position = vec3(Position.x, Position.y+height, Position.z);
+	//}
+	//else
+	//{
+		height = turbulence(4, vec3(tes_worldCoord.x, 0.0, tes_worldCoord.z), 0.07, 0.35);
+		//height -= 0.02;
+		height = clamp(height, 0.0, 0.7);
+		if ((tes_worldCoord.y+height) < 1.0)
+		{
+			height *= 0.2;
+			//height = 0.0;
+		}
+		//height *= 30;
+	//}
 	tes_worldCoord = vec3(tes_worldCoord.x, tes_worldCoord.y+height, tes_worldCoord.z);
 
 	// Deforming terrain
