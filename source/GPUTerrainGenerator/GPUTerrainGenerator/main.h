@@ -6,8 +6,8 @@
 #include "gtc/matrix_transform.hpp"
 
 #define PI 3.1415926535897
-int width  = 720;
-int height = 720;
+int width  = 1024;
+int height = 1024;
 
 #define	DISPLAY_MESH 0
 #define	DISPLAY_SHADED 1
