@@ -35,6 +35,7 @@ void main(void)
 		&& posView.x >= u_Left && posView.x <= u_Right
 		&& posView.y >= u_Bottom && posView.y <= u_Top)
 	{
+		// Tessellate based on distance
 		if (posView.z >= u_TessDistance)
 		{
 			gl_TessLevelInner[0] = u_InnerTessLevel;

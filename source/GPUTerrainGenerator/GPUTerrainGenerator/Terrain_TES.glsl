@@ -156,29 +156,18 @@ void main(void)
 
 	// Tessellate and give random height to terrrain
 	float height;
-	//if (u_UseHeightMap > 0)
-	//{
-	//	vec2 texCoord = vec2((tes_worldCoord.x + 512.0)/1024.0, (tes_worldCoord.z - 1.0)/1024.0);
-	//	height = texture(u_HeightMap, texCoord).r;
-	//	//height = clamp(height, 0.0, 0.7);
-	//	height *= 7.0;
-	//	//vs_Position = vec3(Position.x, Position.y+height, Position.z);
-	//}
-	//else
-	//{
-		height = turbulence(4, vec3(tes_worldCoord.x, 0.0, tes_worldCoord.z), 0.07, 0.35);
-		//height -= 0.02;
-		height = clamp(height, 0.0, 0.7);
-		if ((tes_worldCoord.y+height) < 1.0)
-		{
-			height *= 0.2;
-			//height = 0.0;
-		}
-		//height *= 30;
-	//}
+	
+	height = turbulence(4, vec3(tes_worldCoord.x, 0.0, tes_worldCoord.z), 0.07, 0.35);
+	//height -= 0.02;
+	height = clamp(height, 0.0, 0.7);
+	if ((tes_worldCoord.y+height) < 1.0)
+	{
+		height *= 0.2;
+	}
+	
 	tes_worldCoord = vec3(tes_worldCoord.x, tes_worldCoord.y+height, tes_worldCoord.z);
 
-	// Deforming terrain
+	// Deforming terrain - Perturb the vertices by a small distance based on noise values
 	if (u_DeformPosArr[0].w > 0)
 	{
 		for (int i = 0; i<numDeforms; ++i)
@@ -190,12 +179,14 @@ void main(void)
 				vec3 minVal = currDeformPos - vec3(deformRadius, 0, deformRadius);
 				vec3 maxVal = currDeformPos + vec3(deformRadius, 0, deformRadius);
 				vec2 diff = vec2(tes_worldCoord.x, tes_worldCoord.z) - vec2(currDeformPos.x, currDeformPos.z);
+
+				// Blow off (deform) the terrain if the current vertex is within the deformable limit
 				if (length(diff) < deformRadius)
 				{
 					float blowHeight = turbulence(4, vec3(currDeformPos.x, 0.0, currDeformPos.z), 0.07, 0.35);
 					blowHeight = clamp(blowHeight, 0.0, 0.8);
 					blowHeight *= 10.0;
-					//tes_worldCoord.y -= (0.95+2*clamp(height,0.0,0.2));
+					
 					if (tes_worldCoord.y > (blowHeight + clamp(height, 0.0, 0.4)))
 					{
 						tes_worldCoord.y = min(tes_worldCoord.y, blowHeight);
@@ -206,7 +197,8 @@ void main(void)
 		}
 	}
 
+	// Get into perspective projection
 	tes_Position = u_View * vec4(tes_worldCoord, 1.0);
 	vec4 pos = u_Persp * tes_Position;
-	gl_Position = pos;///pos.w;
+	gl_Position = pos;
 }

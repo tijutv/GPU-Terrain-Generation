@@ -145,6 +145,7 @@ void main(void)
 {
 	if (u_UseHeightMap > 0)
 	{
+		// Heightmap mode
 		vec2 texCoord = vec2((Position.x + 512.0)/1024.0, (Position.z - 1.0)/1024.0);
 		float height = texture(u_HeightMap, texCoord).r;
 		height *= 30.0;
@@ -152,6 +153,7 @@ void main(void)
 	}
 	else
 	{
+		// Terrain using noise
 		float height = turbulence(u_NoiseOctaves, Position.xyz, u_NoiseLacunarity, u_NoiseGain);
 		height -= 0.02;
 		height = max(height, 0.0);

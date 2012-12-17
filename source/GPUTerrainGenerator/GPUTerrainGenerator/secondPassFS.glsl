@@ -100,12 +100,6 @@ vec3 calcNormalBasedOnScreenData(vec2 texcoords)
 	return normal;
 }
 
-
-
-////////////////////////////////////////////////
-/// BEGIN TODO: START HERE
-//////////////////////////////////////////////
-
 //Estimate occlusion based on a point and a sampled occluder
 //Design this function based on specified constraints
 float gatherOcclusion( vec3 pt_normal,
@@ -113,18 +107,10 @@ float gatherOcclusion( vec3 pt_normal,
 	vec3 occluder_normal,
 	vec3 occluder_position) {
 
-	//if (occluder_position.z >= pt_position.z)
-		//return 0.0;
-
 	float depthDiff = (-pt_position.z + occluder_position.z)/abs(u_NearModel - u_FarModel);
-	//if (depthDiff < 0.001)
-		//return 0.0;
-
+	
 	float normDiff = (1.0-dot(occluder_normal, pt_normal));
 	return 2.0*(step(0.001, depthDiff)*normDiff*(1.0-smoothstep(0.001, 0.08, depthDiff)));
-	//return abs(depthDiff);
-
-	//return -1.0f;///IMPLEMENT THIS
 }
 
 const float REGULAR_SAMPLE_STEP = 0.0012f;
@@ -140,8 +126,6 @@ float occlusionWithRegularSamples(vec2 texcoord,
 		{
 			vec2 occluderTexcoord = vec2(texcoord.x+x, texcoord.y+y);
 			vec3 occluderPosition = samplePos(occluderTexcoord);
-			//vec3 occluderNormal = sampleNrm(occluderTexcoord);
-			// occluderNormal = normalize(occluderNormal);
 			vec3 occluderNormal = calcNormalBasedOnScreenData(occluderTexcoord);
 			occlusion += gatherOcclusion(normal, position, occluderNormal, occluderPosition);
 		}
@@ -189,8 +173,6 @@ float occlusionWithPoissonSSSamples(vec2 texcoord,
 		vec2 occluderTexcoord = vec2(texcoord.x+SS_RADIUS*(cosVal*poissonDisk[i].x - sinVal*poissonDisk[i].y), 
 									 texcoord.y+SS_RADIUS*(sinVal*poissonDisk[i].x + cosVal*poissonDisk[i].y));
 		vec3 occluderPosition = samplePos(occluderTexcoord);
-		//vec3 occluderNormal = sampleNrm(occluderTexcoord);
-		//occluderNormal = normalize(occluderNormal);
 		vec3 occluderNormal = calcNormalBasedOnScreenData(occluderTexcoord);
 		occlusion += gatherOcclusion(normal, position, occluderNormal, occluderPosition);
 	}
@@ -238,26 +220,18 @@ float occlusionWithWorldSpaceSamples(vec2 texcoord, vec3 position, vec3 normal)
 		vec3 viewNewPoint = position + sign(dot(newPoint,normal)) * newPoint * SPHERE_RADIUS;
 		vec4 screenPointHom = u_Persp * vec4(viewNewPoint,1.0);
 		vec2 screenPoint = (screenPointHom.xy)/screenPointHom.w;
-		//screenPoint += vec2(diffX,0.0);
 		screenPoint *= vec2(0.55,1.0);
 		screenPoint = clamp(screenPoint, vec2(-1.0), vec2(1.0));
 		screenPoint = screenPoint*0.5 + vec2(0.5);
 			
 		vec2 occluderTexcoord = vec2(screenPoint.x, screenPoint.y);
 		vec3 occluderPosition = samplePos(occluderTexcoord);
-		/*vec3 occluderNormal = sampleNrm(occluderTexcoord);
-		occluderNormal = normalize(occluderNormal);*/
 		vec3 occluderNormal = calcNormalBasedOnScreenData(occluderTexcoord);
 		occlusion += gatherOcclusion(normal, position, occluderNormal, occluderPosition);
 	}
 
-	return occlusion * (1.0/16.0); 
-	//return -1.0f; //IMPLEMENT THIS
+	return occlusion * (1.0/16.0);
 }
-
-//////////////////////////////////////
-// END TODO
-//////////////////////////////////////
 
 const float occlusion_strength = 1.5f;
 void main(void)

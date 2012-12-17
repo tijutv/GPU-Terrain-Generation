@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include "main.h"
 #include "Utility.h"
 #include "Terrain.h"
@@ -101,6 +102,7 @@ struct Tess
 Tess tessellation;
 Tess tessellation2;
 
+// Error message for Frame buffer attachment
 void checkFramebufferStatus(GLenum framebufferStatus) {
 	switch (framebufferStatus) {
         case GL_FRAMEBUFFER_COMPLETE_EXT: break;
@@ -131,8 +133,7 @@ void checkFramebufferStatus(GLenum framebufferStatus) {
     }
 }
 
-
-
+// Initialize shader for the first pass
 GLuint initShader(const char* vShaderFile, const char* fShaderFile, const char* gShaderFile, bool hasGeometryShader,
 	              const char* tcsShaderFile, const char* tesShaderFile, bool hasTessellationShader)
 {
@@ -143,6 +144,7 @@ GLuint initShader(const char* vShaderFile, const char* fShaderFile, const char* 
 	return program;
 }
 
+// Initialize shader for the second pass
 GLuint initSecondPassShader(const char* vShaderFile, const char* fShaderFile, const char* gShaderFile, bool hasGeometryShader,
 	              const char* tcsShaderFile, const char* tesShaderFile, bool hasTessellationShader)
 {
@@ -441,12 +443,13 @@ void updateTitleFPS()
 	// Check if a second has passed
 	if (currTime - lastTime > 1000) 
 	{
-		char title[512];
-		char titleEnd[512];
-		strcpy(title, mainTitle);
-		sprintf(titleEnd, " FPS: %4.2f", frame*1000.0/(currTime-lastTime));
-		strcat(title, titleEnd);
-		glutSetWindowTitle(title);
+		string title;
+		string titleEnd;
+		char frameRate[20];
+		sprintf_s(frameRate, 20, " FPS: %4.2f", frame*1000.0/(currTime-lastTime));
+		title = mainTitle;
+		title.append(frameRate);
+		glutSetWindowTitle(title.c_str());
 	 	lastTime = currTime;
 		frame = 0;
 	}
@@ -455,6 +458,7 @@ void updateTitleFPS()
 glm::vec4 nearModelView;
 glm::vec4 farModelView;
 
+// Create uniforms for the first pass
 void GetUniforms()
 {
 	glm::mat4 view = cam.GetViewTransform();
@@ -544,6 +548,8 @@ void GetUniforms()
 		deformVal = 1;
 	}
 
+	// Store into the deform array if the mode is enabled and the user clicks on the output screen
+	// Claculate z distance and radius to pass into the Tessellation Evaluation Shader
 	vec4 deformPos;
 	if (deform && deformClickChanged)
 	{
@@ -560,7 +566,7 @@ void GetUniforms()
 		deformPos.x = -camPosModelView.x + deformPosNorm.x * 45.0;
 		deformPos.z = -camPosModelView.z + deformPosNorm.z * -45.0;
 		//deformPos = view*vec4(deformPos.x, deformPos.y, deformPos.z, 1.0);
-		// Radius
+		// Random Radius
 		deformPos.w = ((perm[((int)abs(deformPos.z*200))%256]+perm[((int)abs(deformPos.x)*200)%256])/256.0) * 4.0 + 3.0;
 
 		deformPosArr[deformArrIndex] = deformPos;
@@ -651,7 +657,6 @@ void display(void)
 	bindFBO();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-
 	// First use the shaders to tessellate and get the correct geometry in the first pass
 	glUseProgram(shaderProgram);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
@@ -678,7 +683,8 @@ void display(void)
 	glActiveTexture(GL_TEXTURE7);
     glBindTexture(GL_TEXTURE_2D, heightMapTex);
     glUniform1i(glGetUniformLocation(shaderProgram, "u_HeightMap"),7);
-
+	
+	// This random texture is used to displace water
 	glActiveTexture(GL_TEXTURE8);
     glBindTexture(GL_TEXTURE_2D, random_scalar_tex1);
     glUniform1i(glGetUniformLocation(shaderProgram, "u_RandomScalartex1"),8);

@@ -1,0 +1,33 @@
+\begin{thebibliography}{\protect\citename{Moller et~al\mbox{.} }2008}
+
+\bibitem[\protect\citename{Ebert et~al\mbox{.} }2003]{Ebert:2003}
+{\sc Ebert, D.~S., Musgrave, F.~K., Peachey, D., Perlin, K., and Worley, S.}
+\newblock 2003.
+\newblock {\em Texturing and Modeling - A Procedural Approcah}, third~ed.
+\newblock Morgan Kaufmann.
+
+\bibitem[\protect\citename{Geiss }2007]{GPUGems3:2007}
+{\sc Geiss, R.}
+\newblock 2007.
+\newblock {\em GPU Gems 3}.
+\newblock Addison-Wesley Professional.
+
+\bibitem[\protect\citename{Moller et~al\mbox{.} }2008]{RealTime:2008}
+{\sc Moller, T.~A., Haines, E., and Hoffman, N.}
+\newblock 2008.
+\newblock {\em Real-Time Rendering}, third~ed.
+\newblock A. K. Peters, Ltd.
+
+\bibitem[\protect\citename{Rideout and Gelder }2012]{openglInsights:2012}
+{\sc Rideout, P., and Gelder, D.~V.}
+\newblock 2012.
+\newblock {\em OpenGL Insights}.
+\newblock CRC Press.
+
+\bibitem[\protect\citename{Rideout }2010]{grasshopper:2010}
+{\sc Rideout, P.}
+\newblock 2010.
+\newblock {\em Triangle Tessellation with OpenGL 4.0}.
+\newblock prideout.net/blog/?p=48.
+
+\end{thebibliography}

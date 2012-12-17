@@ -15,8 +15,6 @@ uniform vec3 u_TerrainColor;
 
 void main(void)
 {
-	//out_Color = vec4(texture(u_Noise, screenPos+vec2(1)).r,0,0,1);
-	
 	// Different colors based on height -- Start
 	vec4 color0 = vec4(0,0.3,0.6,1.0);
 	vec4 color1 = vec4(0.1,0.6,0.0,1.0);
