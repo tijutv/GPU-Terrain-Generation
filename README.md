@@ -11,6 +11,10 @@ Blog
 ======================
 http://GPUTerrain.blogspot.com/
 
+Paper
+======================
+https://docs.google.com/file/d/0ByOcNCoXcDPCX0VvblpLczF0X2s/edit
+
 Video
 ======================
 http://www.youtube.com/watch?v=JHYHj8MzRVQ&feature=youtu.be
