@@ -3,13 +3,17 @@ GPU-Terrain-Generation
 
 Procedural Terrain Generation using the GPU
 
+Goal
+======================
+Terrain Generation on the GPU with increasing level of detail using tessellation depending on the camera position.
+
 Blog
 ======================
 http://GPUTerrain.blogspot.com/
 
-Goal
+Video
 ======================
-Terrain Generation on the GPU with increasing level of detail using tessellation depending on the camera position.
+http://www.youtube.com/watch?v=JHYHj8MzRVQ&feature=youtu.be
 
 Controls
 ======================
